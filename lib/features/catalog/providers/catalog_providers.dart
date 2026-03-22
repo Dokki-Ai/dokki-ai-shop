@@ -12,3 +12,8 @@ final botsProvider = FutureProvider<List<Bot>>((ref) async {
   final repository = ref.watch(botRepositoryProvider);
   return repository.getBots();
 });
+
+final botByIdProvider = FutureProvider.family<Bot?, String>((ref, botId) async {
+  final repository = ref.watch(botRepositoryProvider);
+  return repository.getBotById(botId);
+});

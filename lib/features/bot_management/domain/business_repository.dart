@@ -1,15 +1,12 @@
 import 'business.dart';
 
 abstract class BusinessRepository {
-  /// Получить список всех подключенных ботов пользователя
-  Future<List<Business>> getConnectedBots();
-
-  /// Подключить нового бота
   Future<Business> connectBot({
     required String botId,
     required String botToken,
+    required String railwayToken,
+    required String railwayWorkspaceId,
   });
-
-  /// Обновить данные существующего бота
-  Future<Business> updateBusiness(String id, Map<String, dynamic> data);
+  Future<List<Business>> getConnectedBots();
+  Future<Business?> getBusinessById(String id);
 }

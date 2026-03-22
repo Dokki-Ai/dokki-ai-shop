@@ -25,6 +25,8 @@ class BusinessRepositoryImpl implements BusinessRepository {
   Future<Business> connectBot({
     required String botId,
     required String botToken,
+    required String railwayToken,
+    required String railwayWorkspaceId,
   }) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw Exception('Пользователь не авторизован');
@@ -35,6 +37,8 @@ class BusinessRepositoryImpl implements BusinessRepository {
           'user_id': userId,
           'bot_id': botId,
           'bot_token': botToken,
+          'client_railway_token': railwayToken,
+          'client_railway_workspace_id': railwayWorkspaceId,
           'status': 'pending',
         })
         .select()
@@ -44,14 +48,11 @@ class BusinessRepositoryImpl implements BusinessRepository {
   }
 
   @override
-  Future<Business> updateBusiness(String id, Map<String, dynamic> data) async {
-    final response = await _client
-        .from('businesses')
-        .update(data)
-        .eq('id', id)
-        .select()
-        .single();
+  Future<Business?> getBusinessById(String id) async {
+    final response =
+        await _client.from('businesses').select().eq('id', id).maybeSingle();
 
+    if (response == null) return null;
     return Business.fromJson(response);
   }
 }

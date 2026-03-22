@@ -8,6 +8,10 @@ class Business {
   final String? botSupabaseUrl;
   final String? botSupabaseAnonKey;
   final String? botBusinessId;
+  final DateTime? createdAt;
+  // Новые поля для деплоя
+  final String? clientRailwayToken;
+  final String? clientRailwayWorkspaceId;
 
   Business({
     required this.id,
@@ -19,6 +23,9 @@ class Business {
     this.botSupabaseUrl,
     this.botSupabaseAnonKey,
     this.botBusinessId,
+    this.createdAt,
+    this.clientRailwayToken,
+    this.clientRailwayWorkspaceId,
   });
 
   factory Business.fromJson(Map<String, dynamic> json) {
@@ -32,6 +39,12 @@ class Business {
       botSupabaseUrl: json['bot_supabase_url'] as String?,
       botSupabaseAnonKey: json['bot_supabase_anon_key'] as String?,
       botBusinessId: json['bot_business_id'] as String?,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : null,
+      // Новые поля из Supabase
+      clientRailwayToken: json['client_railway_token'] as String?,
+      clientRailwayWorkspaceId: json['client_railway_workspace_id'] as String?,
     );
   }
 }
