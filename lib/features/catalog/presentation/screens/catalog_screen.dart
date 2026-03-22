@@ -14,8 +14,8 @@ class CatalogScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Каталог ИИ-ботов'),
-        centerTitle: false,
+        title: const Text('Магазин'),
+        centerTitle: true,
       ),
       body: botsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
