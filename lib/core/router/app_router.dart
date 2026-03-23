@@ -8,6 +8,9 @@ import '../../features/bot_management/presentation/screens/connect_bot_screen.da
 import '../../features/bot_management/presentation/screens/bot_management_screen.dart';
 import '../../features/bot_management/domain/business.dart';
 import '../supabase/supabase_client.dart';
+// Добавленные импорты для нового роута
+import '../../features/catalog/presentation/screens/bot_detail_screen.dart';
+import '../../features/catalog/domain/bot.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final supabase = ref.watch(supabaseClientProvider);
@@ -30,6 +33,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/auth',
         builder: (context, state) => const AuthScreen(),
+      ),
+      // Новый роут для деталей бота
+      GoRoute(
+        path: '/bot-detail/:botId',
+        builder: (context, state) => BotDetailScreen(bot: state.extra as Bot),
       ),
       GoRoute(
         path: '/connect-bot/:botId/:botName',

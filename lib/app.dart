@@ -8,12 +8,16 @@ class DokkiApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Восстановлена оригинальная инициализация роутера
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title: 'Dokki AI Shop',
-      theme: AppTheme.dark,
+      title: 'Dokki Business',
       debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
+      // ИСПРАВЛЕНО: Удален darkTheme и зафиксирован светлый режим
+      themeMode: ThemeMode.light,
+      // Восстановлен оригинальный routerConfig
       routerConfig: router,
     );
   }

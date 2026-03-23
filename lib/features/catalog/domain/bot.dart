@@ -3,18 +3,24 @@ class Bot {
   final String name;
   final String description;
   final String category;
-  final bool isActive;
+  final String? imageUrl;
+  final List<String>? features;
   final String? githubRepo;
-  final String? imageUrl; // Новое поле
+  // Добавлено в Шаге 2
+  final int? priceMonthly;
+  final List<Map<String, dynamic>>? shortFeatures;
 
-  const Bot({
+  Bot({
     required this.id,
     required this.name,
     required this.description,
     required this.category,
-    required this.isActive,
+    this.imageUrl,
+    this.features,
     this.githubRepo,
-    this.imageUrl, // Добавлено в конструктор
+    // Добавлено в Шаге 2
+    this.priceMonthly,
+    this.shortFeatures,
   });
 
   factory Bot.fromJson(Map<String, dynamic> json) {
@@ -23,10 +29,14 @@ class Bot {
       name: json['name'] as String,
       description: json['description'] as String,
       category: json['category'] as String,
-      // Маппинг snake_case из БД в camelCase модели
-      isActive: json['is_active'] as bool,
+      imageUrl: json['image_url'] as String?,
+      features: (json['features'] as List?)?.map((e) => e.toString()).toList(),
       githubRepo: json['github_repo'] as String?,
-      imageUrl: json['image_url'] as String?, // Маппинг нового поля
+      // Добавлено в Шаге 2: Маппинг новых полей
+      priceMonthly: json['price_monthly'] as int?,
+      shortFeatures: (json['short_features'] as List?)
+          ?.map((e) => e as Map<String, dynamic>)
+          .toList(),
     );
   }
 }

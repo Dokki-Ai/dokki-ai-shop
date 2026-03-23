@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/bot.dart';
 
@@ -12,16 +11,15 @@ class BotDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        // ПРИМЕНЕННАЯ ПРАВКА: Сплошной фон вместо прозрачного
         backgroundColor: AppColors.background,
         elevation: 0,
         leading: const BackButton(color: AppColors.textPrimary),
       ),
-      // Убеждаемся, что контент начинается строго под AppBar
-      extendBodyBehindAppBar: false,
       body: Column(
         children: [
           Expanded(
@@ -29,53 +27,72 @@ class BotDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Изображение бота (250px)
                   _buildHeaderImage(),
+
                   Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(24.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Название бота
                         Text(
                           bot.name,
-                          style: TextStyle(
+                          style: textTheme.titleLarge?.copyWith(
                             fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Категория в виде Chip
+                        Chip(
+                          label: Text(
+                            bot.category.toUpperCase(),
+                            style: textTheme.labelSmall?.copyWith(
+                              color: AppColors.accent,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          backgroundColor: AppColors.surface,
+                          side: const BorderSide(color: AppColors.border),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Описание
+                        Text(
+                          'ОПИСАНИЕ',
+                          style: textTheme.labelSmall?.copyWith(
+                            color: AppColors.textSecondary,
+                            letterSpacing: 1.2,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Chip(
-                          label: Text(bot.category),
-                          backgroundColor: AppColors.card,
-                          labelStyle: TextStyle(color: AppColors.textSecondary),
-                          side: BorderSide.none,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        const SizedBox(height: 16),
                         Text(
                           bot.description,
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 16,
+                          style: textTheme.bodyLarge?.copyWith(
+                            color: AppColors.textPrimary,
                             height: 1.5,
                           ),
                         ),
+
+                        // Список возможностей (features)
                         if (bot.features != null &&
                             bot.features!.isNotEmpty) ...[
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 32),
                           Text(
-                            "Возможности",
-                            style: TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
+                            'ВОЗМОЖНОСТИ',
+                            style: textTheme.labelSmall?.copyWith(
+                              color: AppColors.textSecondary,
+                              letterSpacing: 1.2,
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          ...bot.features!
-                              .map((feature) => _buildFeatureItem(feature)),
+                          const SizedBox(height: 16),
+                          ...bot.features!.map(
+                              (feature) => _buildFeatureItem(context, feature)),
                         ],
-                        const SizedBox(height: 100),
                       ],
                     ),
                   ),
@@ -83,60 +100,50 @@ class BotDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-          _buildConnectButton(context),
+
+          // Фиксированная нижняя панель с кнопкой
+          _buildBottomAction(context),
         ],
       ),
     );
   }
 
   Widget _buildHeaderImage() {
-    const double imageHeight = 250;
-
-    if (bot.imageUrl != null && bot.imageUrl!.isNotEmpty) {
-      return CachedNetworkImage(
-        imageUrl: bot.imageUrl!,
-        height: imageHeight,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        placeholder: (context, url) => Container(
-          height: imageHeight,
-          color: AppColors.card,
-          child: const Center(
-              child: CircularProgressIndicator(color: AppColors.accent)),
-        ),
-        errorWidget: (context, url, error) => _buildFallbackImage(imageHeight),
-      );
-    } else {
-      return _buildFallbackImage(imageHeight);
-    }
-  }
-
-  Widget _buildFallbackImage(double height) {
-    return Container(
-      height: height,
+    return CachedNetworkImage(
+      imageUrl: bot.imageUrl ?? '',
+      height: 250,
       width: double.infinity,
-      color: AppColors.card,
-      child: const Icon(Icons.smart_toy_outlined,
-          size: 64, color: AppColors.textSecondary),
+      fit: BoxFit.cover,
+      placeholder: (context, url) => Container(
+        height: 250,
+        color: AppColors.border,
+        child: const Center(
+            child: CircularProgressIndicator(color: AppColors.accent)),
+      ),
+      errorWidget: (context, url, error) => Container(
+        height: 250,
+        color: AppColors.border,
+        child: const Icon(Icons.smart_toy_outlined,
+            size: 64, color: AppColors.textSecondary),
+      ),
     );
   }
 
-  Widget _buildFeatureItem(String feature) {
+  Widget _buildFeatureItem(BuildContext context, String feature) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
+      padding: const EdgeInsets.only(bottom: 12.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.check_circle_outline,
-            color: AppColors.accent,
-            size: 20,
-          ),
-          const SizedBox(width: 8),
+          const Icon(Icons.check_circle_rounded,
+              color: AppColors.success, size: 20),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               feature,
-              style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
             ),
           ),
         ],
@@ -144,30 +151,17 @@ class BotDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildConnectButton(BuildContext context) {
+  Widget _buildBottomAction(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16.0),
-      width: double.infinity,
-      color: AppColors.background,
-      child: SafeArea(
-        top: false,
-        child: ElevatedButton(
-          onPressed: () {
-            context.push('/connect-bot/${bot.id}/${bot.name}');
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.accent,
-            foregroundColor: Colors.white,
-            minimumSize: const Size(double.infinity, 56),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            elevation: 0,
-          ),
-          child: Text(
-            "Подключить",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-        ),
+      padding: EdgeInsets.fromLTRB(
+          24, 16, 24, MediaQuery.of(context).padding.bottom + 16),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.border)),
+      ),
+      child: ElevatedButton(
+        onPressed: () => context.push('/connect-bot/${bot.id}/${bot.name}'),
+        child: const Text('ПОДКЛЮЧИТЬ'),
       ),
     );
   }

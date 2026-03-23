@@ -1,54 +1,80 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  static const background = Color(0xFF0D1117);
-  static const surface = Color(0xFF161B22);
-  static const card = Color(0xFF1C2333);
-  static const accent = Color(0xFF4F8EF7);
-  static const success = Color(0xFF2ECC71);
-  static const warning = Color(0xFFF39C12);
-  static const error = Color(0xFFE74C3C);
-  static const textPrimary = Color(0xFFE6EDF3);
-  static const textSecondary = Color(0xFF8B949E);
-  static const border = Color(0xFF30363D);
+  static const Color background = Color(0xFFF0F4FF);
+  static const Color surface = Color(0xFFFFFFFF);
+  static const Color card = Color(0xFFFFFFFF);
+  static const Color accent = Color(0xFF4361EE);
+  static const Color success = Color(0xFF2ECC71);
+  static const Color warning = Color(0xFFF39C12);
+  static const Color error = Color(0xFFE74C3C);
+  static const Color textPrimary = Color(0xFF1A1A2E);
+  static const Color textSecondary = Color(0xFF6B7280);
+  static const Color border = Color(0xFFE5E7EB);
 }
 
 class AppTheme {
-  static ThemeData get dark => ThemeData(
+  static ThemeData get light => ThemeData(
         useMaterial3: true,
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: AppColors.background,
-        colorScheme: const ColorScheme.dark(
-          primary: AppColors.accent,
+        brightness: Brightness.light,
+        colorScheme: const ColorScheme.light(
           surface: AppColors.surface,
+          primary: AppColors.accent,
           error: AppColors.error,
+          onSurface: AppColors.textPrimary,
         ),
-        cardTheme: const CardThemeData(
-          color: AppColors.card,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(16)),
-            side: BorderSide(color: AppColors.border, width: 1),
+        scaffoldBackgroundColor: AppColors.background,
+
+        fontFamily: GoogleFonts.nunito().fontFamily,
+
+        textTheme: GoogleFonts.nunitoTextTheme(
+          ThemeData.light().textTheme,
+        ).copyWith(
+          bodyLarge: GoogleFonts.nunito(color: AppColors.textPrimary),
+          bodyMedium: GoogleFonts.nunito(color: AppColors.textPrimary),
+          titleLarge: GoogleFonts.nunito(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
           ),
         ),
+
         appBarTheme: const AppBarTheme(
           backgroundColor: AppColors.background,
           elevation: 0,
           centerTitle: true,
+          iconTheme: IconThemeData(color: AppColors.textPrimary),
           titleTextStyle: TextStyle(
             color: AppColors.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
           ),
         ),
+
+        // ИСПРАВЛЕНО: Использование CardThemeData вместо CardTheme
+        cardTheme: const CardThemeData(
+          color: AppColors.card,
+          elevation: 2,
+          shadowColor: Color(0x1A000000),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(20)),
+            side: BorderSide(color: AppColors.border, width: 1),
+          ),
+        ),
+
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.accent,
             foregroundColor: Colors.white,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(12)),
+            elevation: 0,
+            minimumSize: const Size(double.infinity, 56),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            textStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
           ),
         ),
       );
