@@ -5,21 +5,23 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../auth/providers/auth_providers.dart';
 import '../../../bot_management/providers/bot_management_providers.dart';
 import '../widgets/business_card.dart';
+import '../../../../core/localization/language_provider.dart';
+import '../../../../core/localization/app_strings.dart';
 
 class MyBotsScreen extends ConsumerWidget {
   const MyBotsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 1. Сначала слушаем состояние авторизации
     final authState = ref.watch(authStateProvider);
+    final s = ref.watch(stringsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text(
-          'Мои боты',
-          style: TextStyle(
+        title: Text(
+          s.navMyBots,
+          style: const TextStyle(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.bold,
             fontFamily: 'Inter',
@@ -38,12 +40,10 @@ class MyBotsScreen extends ConsumerWidget {
               style: const TextStyle(color: AppColors.error)),
         ),
         data: (user) {
-          // 2. Если пользователь НЕ авторизован — показываем экран входа
           if (user == null) {
-            return _buildLockedState(context);
+            return _buildLockedState(context, s);
           }
 
-          // 3. Если авторизован — слушаем оригинальный провайдер ботов
           final connectedBotsAsync = ref.watch(connectedBotsProvider);
 
           return connectedBotsAsync.when(
@@ -55,12 +55,10 @@ class MyBotsScreen extends ConsumerWidget {
                   style: const TextStyle(color: AppColors.error)),
             ),
             data: (businesses) {
-              // 4. Если список пуст — показываем Робота и переход в каталог
               if (businesses.isEmpty) {
-                return _buildEmptyState(context);
+                return _buildEmptyState(context, s);
               }
 
-              // 5. Если боты есть — выводим список через оригинальный BusinessCard
               return ListView.builder(
                 padding: const EdgeInsets.all(16),
                 itemCount: businesses.length,
@@ -82,8 +80,7 @@ class MyBotsScreen extends ConsumerWidget {
     );
   }
 
-  // СОСТОЯНИЕ: Нужно войти (Замок)
-  Widget _buildLockedState(BuildContext context) {
+  Widget _buildLockedState(BuildContext context, AppStrings s) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -93,10 +90,10 @@ class MyBotsScreen extends ConsumerWidget {
             const Icon(Icons.lock_outline,
                 size: 64, color: AppColors.textSecondary),
             const SizedBox(height: 16),
-            const Text(
-              'Войдите, чтобы увидеть ваших ботов',
+            Text(
+              s.myBotsLocked,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 color: AppColors.textSecondary,
                 fontFamily: 'Inter',
@@ -114,10 +111,10 @@ class MyBotsScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
-                child: const Text(
-                  'ВОЙТИ',
-                  style: TextStyle(
-                    color: Colors.white,
+                child: Text(
+                  s.authLogin.toUpperCase(),
+                  style: const TextStyle(
+                    color: AppColors.surface,
                     fontWeight: FontWeight.bold,
                     fontFamily: 'Inter',
                   ),
@@ -130,8 +127,7 @@ class MyBotsScreen extends ConsumerWidget {
     );
   }
 
-  // СОСТОЯНИЕ: Список пуст (Робот)
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState(BuildContext context, AppStrings s) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -141,10 +137,10 @@ class MyBotsScreen extends ConsumerWidget {
             const Icon(Icons.smart_toy_outlined,
                 size: 64, color: AppColors.textSecondary),
             const SizedBox(height: 16),
-            const Text(
-              'У вас пока нет подключённых ботов',
+            Text(
+              s.myBotsEmpty,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 color: AppColors.textSecondary,
                 fontFamily: 'Inter',
@@ -161,9 +157,9 @@ class MyBotsScreen extends ConsumerWidget {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text(
-                  'ПЕРЕЙТИ В КАТАЛОГ',
-                  style: TextStyle(
+                child: Text(
+                  s.myBotsGoCatalog.toUpperCase(),
+                  style: const TextStyle(
                     color: AppColors.accent,
                     fontWeight: FontWeight.bold,
                     fontFamily: 'Inter',
