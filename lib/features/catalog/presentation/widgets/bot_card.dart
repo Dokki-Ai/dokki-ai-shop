@@ -40,7 +40,7 @@ class BotCard extends ConsumerWidget {
         ),
         child: Row(
           children: [
-            // Левый блок
+            // Левый блок (Изображение)
             ClipRRect(
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(16),
@@ -67,7 +67,7 @@ class BotCard extends ConsumerWidget {
               ),
             ),
 
-            // Правый блок
+            // Правый блок (Контент)
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
@@ -86,26 +86,33 @@ class BotCard extends ConsumerWidget {
                     ),
                     const SizedBox(height: 4),
 
+                    // Краткое описание (вместо категории)
+                    Expanded(
+                      child: Text(
+                        bot.shortDescription,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // Цена в новом формате
                     Text(
-                      bot.category,
+                      'from \$${(bot.priceMonthly ?? 0).toStringAsFixed(0)}/${s.payMonth}',
                       style: const TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 13,
                       ),
                     ),
-
-                    const Spacer(),
-
-                    Text(
-                      '\$${(bot.priceMonthly ?? 0).toStringAsFixed(0)}/мес',
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
                     const SizedBox(height: 6),
 
+                    // Кнопка
                     SizedBox(
                       width: double.infinity,
                       height: 32,

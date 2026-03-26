@@ -7,5 +7,9 @@ final languageProvider = StateProvider<AppLanguage>((ref) => AppLanguage.ru);
 // Провайдер строк — зависит от languageProvider
 final stringsProvider = Provider<AppStrings>((ref) {
   final language = ref.watch(languageProvider);
+
+  // КРИТИЧЕСКИ ВАЖНО: Обновляем статический контекст для моделей (Bot и т.д.)
+  AppStrings.currentLanguage = language;
+
   return AppStrings(language);
 });
