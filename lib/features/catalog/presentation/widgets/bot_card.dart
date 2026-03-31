@@ -17,7 +17,8 @@ class BotCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const double cardHeight = 160.0;
+    // ЗАДАЧА 35: Увеличиваем высоту со 160 до 170, чтобы убрать overflow
+    const double cardHeight = 170.0;
     final s = ref.watch(stringsProvider);
 
     return GestureDetector(
@@ -47,8 +48,8 @@ class BotCard extends ConsumerWidget {
                 bottomLeft: Radius.circular(16),
               ),
               child: SizedBox(
-                width: cardHeight,
-                height: cardHeight,
+                width: cardHeight, // Теперь 170
+                height: cardHeight, // Теперь 170
                 child: CachedNetworkImage(
                   imageUrl: bot.imageUrl ?? '',
                   fit: BoxFit.cover,
@@ -115,9 +116,8 @@ class BotCard extends ConsumerWidget {
                         fontFamily: 'Inter',
                       ),
                     ),
-                    const SizedBox(height: 6),
 
-                    // 4. Кнопка
+                    // 4. Кнопка (Spacer вытолкнет её вниз в рамках новой высоты 170)
                     const Spacer(),
                     SizedBox(
                       width: double.infinity,

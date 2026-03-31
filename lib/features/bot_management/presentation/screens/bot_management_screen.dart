@@ -5,7 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/business.dart';
 import '../../providers/bot_management_providers.dart';
-import '../../data/price_parser.dart'; // Задача 19: Импорт парсера
+import '../../data/price_parser.dart';
 
 class BotManagementScreen extends ConsumerStatefulWidget {
   final Business business;
@@ -38,49 +38,144 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
     super.dispose();
   }
 
-  // Обновленный метод выбора и автоматической загрузки файла (Задача 19)
+  /// Метод выбора и обработки файла (Задачи 33-34)
   Future<void> _pickPriceFile() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['xlsx', 'xls', 'csv'],
-    );
-
-    if (result == null || result.files.single.path == null) return;
+    final result = await FilePicker.platform.pickFiles(type: FileType.any);
+    if (result == null || result.files.single.path == null) {
+      return;
+    }
 
     setState(() => _isSaving = true);
 
     try {
       final filePath = result.files.single.path!;
-
-      // 1. Парсим файл в List<Map>
       final products = await PriceParser.parseFile(filePath);
 
       if (products.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Файл пуст или имеет неверный формат'),
-              backgroundColor: AppColors.error,
-            ),
+            const SnackBar(content: Text('Файл пуст или не распознан')),
           );
         }
         return;
       }
 
-      // 2. Отправляем данные на Fly.io
-      final success =
-          await ref.read(priceListRepositoryProvider).uploadPriceList(
-                telegramUsername: widget.business.telegramUsername,
-                products: products,
-              );
+      // 1. Загружаем текущий прайс для сравнения дубликатов
+      final existing = await ref.read(priceListRepositoryProvider).getProducts(
+            telegramUsername: widget.business.telegramUsername,
+          );
 
-      if (mounted) {
+      final existingNames = existing
+          .map((p) => p['name'].toString().toLowerCase().trim())
+          .toSet();
+
+      final duplicates = products.where((p) {
+        return existingNames
+            .contains(p['name'].toString().toLowerCase().trim());
+      }).length;
+
+      // 2. Показываем диалог выбора режима
+      if (!mounted) {
+        return;
+      }
+
+      final mode = await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          backgroundColor: AppColors.card,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            'Загрузка ${products.length} товаров',
+            style: const TextStyle(color: AppColors.textPrimary),
+          ),
+          content: Text(
+            duplicates > 0
+                ? 'Найдено $duplicates совпадений. Выберите действие:'
+                : 'Совпадений не найдено. Выберите действие:',
+            style: const TextStyle(color: AppColors.textSecondary),
+          ),
+          actions: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context, 'replace'),
+                    child: const Text(
+                      'УДАЛИТЬ ВСЁ И ЗАГРУЗИТЬ ЗАНОВО',
+                      style: TextStyle(
+                          color: AppColors.error, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context, 'merge'),
+                    child: const Text(
+                      'ДОБАВИТЬ ТОЛЬКО НОВЫЕ',
+                      style: TextStyle(
+                          color: AppColors.accent, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context, null),
+                    child: const Text(
+                      'ОТМЕНА',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      if (mode == null) {
+        return;
+      }
+
+      // 3. Выполнение импорта (Задача 34)
+      bool success = false;
+
+      if (mode == 'replace') {
+        success = await ref.read(priceListRepositoryProvider).uploadPriceList(
+              telegramUsername: widget.business.telegramUsername,
+              products: products,
+            );
+      } else if (mode == 'merge') {
+        final newProducts = products.where((p) {
+          return !existingNames
+              .contains(p['name'].toString().toLowerCase().trim());
+        }).toList();
+
+        if (newProducts.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Все товары уже есть в базе')),
+            );
+          }
+          return;
+        }
+
+        success = await ref.read(priceListRepositoryProvider).addProducts(
+              telegramUsername: widget.business.telegramUsername,
+              products: newProducts,
+            );
+      }
+
+      if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(success
-                ? 'Успешно загружено ${products.length} позиций'
-                : 'Ошибка при сохранении на сервере'),
-            backgroundColor: success ? Colors.green : AppColors.error,
+          const SnackBar(
+            content: Text('Прайс-лист успешно обновлен'),
+            backgroundColor: Colors.green,
           ),
         );
       }
@@ -88,46 +183,31 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Ошибка парсинга: $e'),
+            content: Text('Ошибка импорта: $e'),
             backgroundColor: AppColors.error,
           ),
         );
       }
     } finally {
-      if (mounted) setState(() => _isSaving = false);
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
   Future<void> _handleSave() async {
     setState(() => _isSaving = true);
-    final String promptText = _promptController.text.trim();
-
     try {
       final bool success =
           await ref.read(botPromptRepositoryProvider).updateSystemPrompt(
                 telegramUsername: widget.business.telegramUsername,
-                systemPrompt: promptText,
+                systemPrompt: _promptController.text.trim(),
               );
-
-      if (success) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Промпт сохранен'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } else {
-        throw Exception('Сервер Fly.io не ответил');
-      }
-    } catch (e) {
-      if (mounted) {
+      if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка: $e'),
-            backgroundColor: AppColors.error,
-          ),
+          const SnackBar(
+              content: Text('Инструкции сохранены'),
+              backgroundColor: Colors.green),
         );
       }
     } finally {
@@ -148,136 +228,121 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
         title: Text(
           widget.business.botName,
           style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'Inter',
-          ),
+              color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: AppColors.textPrimary,
-            size: 20,
-          ),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: AppColors.textPrimary, size: 20),
           onPressed: () => context.pop(),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // --- Секция: Инструкции ---
-            TextField(
-              controller: _promptController,
-              maxLines: 10,
-              maxLength: 10000,
-              enabled: !_isSaving,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 15,
-                fontFamily: 'Inter',
-              ),
-              decoration: InputDecoration(
-                labelText: 'Инструкции для бота',
-                labelStyle: const TextStyle(color: AppColors.textSecondary),
-                alignLabelWithHint: true,
-                filled: true,
-                fillColor: AppColors.card,
-                counterStyle: const TextStyle(color: AppColors.textSecondary),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.border),
+      body: SafeArea(
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Инструкции для ИИ',
+                  style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500),
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: AppColors.accent, width: 2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: _isSaving ? null : _handleSave,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accent,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _promptController,
+                  maxLines: 6,
+                  maxLength: 10000,
+                  enabled: !_isSaving,
+                  style: const TextStyle(
+                      color: AppColors.textPrimary, fontSize: 15),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: AppColors.card,
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none),
                   ),
                 ),
-                child: _isSaving
-                    ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Text(
-                        'СОХРАНИТЬ',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Inter',
-                        ),
-                      ),
-              ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: _isSaving ? null : _handleSave,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accent,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: _isSaving
+                        ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2))
+                        : const Text('СОХРАНИТЬ ИНСТРУКЦИИ',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(height: 28),
+                const Text('Прайс-лист',
+                    style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                _buildMenuButton(
+                  icon: Icons.list_alt_rounded,
+                  label: 'Управление товарами',
+                  onTap: () =>
+                      context.push('/price-list', extra: widget.business),
+                ),
+                const SizedBox(height: 12),
+                _buildMenuButton(
+                  icon: Icons.upload_file_rounded,
+                  label: _isSaving ? 'Загрузка...' : 'Загрузить прайс-лист',
+                  onTap: _isSaving ? null : _pickPriceFile,
+                ),
+                const SizedBox(height: 20),
+              ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
 
-            // --- Секция: Прайс-лист ---
-            const SizedBox(height: 32),
-            const Text(
-              'Прайс-лист',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Inter',
-              ),
-            ),
-            const SizedBox(height: 16),
-            InkWell(
-              onTap: _isSaving ? null : _pickPriceFile,
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                decoration: BoxDecoration(
-                  color: AppColors.card,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.upload_file_rounded,
-                      color: _isSaving
-                          ? AppColors.textSecondary
-                          : AppColors.accent,
-                      size: 40,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _isSaving ? 'Обработка...' : 'Загрузить Excel/CSV',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 15,
-                        fontFamily: 'Inter',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+  Widget _buildMenuButton(
+      {required IconData icon, required String label, VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.accent),
+            const SizedBox(width: 12),
+            Text(label,
+                style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500)),
+            const Spacer(),
+            const Icon(Icons.arrow_forward_ios_rounded,
+                color: AppColors.textSecondary, size: 14),
           ],
         ),
       ),

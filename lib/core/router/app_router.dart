@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+// Импорты экранов
 import '../../features/auth/presentation/screens/auth_screen.dart';
 import '../navigation/main_screen.dart';
 import '../supabase/supabase_client.dart';
@@ -12,11 +13,16 @@ import '../../features/settings/presentation/screens/language_screen.dart';
 import '../../features/settings/presentation/screens/notifications_screen.dart';
 import '../../features/bot_management/presentation/screens/bot_management_screen.dart';
 import '../../features/bot_management/presentation/screens/bot_config_screen.dart';
+import '../../features/bot_management/presentation/screens/price_list_screen.dart';
+import '../../features/bot_management/presentation/screens/product_edit_screen.dart';
+
+// Импорты домена
 import '../../features/bot_management/domain/business.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final supabase = ref.watch(supabaseClientProvider);
 
+  // Слушатель состояния авторизации для обновления роутера
   final authListener = _AuthNotifier(supabase);
 
   return GoRouter(
@@ -27,42 +33,41 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = session != null;
       final location = state.matchedLocation;
 
-      // Защищенные маршруты
+      // Список защищенных маршрутов
       final isProtectedRoute = location.startsWith('/profile') ||
           location.startsWith('/payment') ||
           location.startsWith('/bot-config') ||
-          location.startsWith('/bot-management');
+          location.startsWith('/bot-management') ||
+          location.startsWith('/price-list') ||
+          location.startsWith('/product-edit');
 
       final isAuthRoute = location == '/auth';
 
-      if (kDebugMode) {
-        debugPrint('=== ROUTER REDIRECT CHECK ===');
-        debugPrint('Location: $location | IsLoggedIn: $isLoggedIn');
-      }
-
-      // Если не залогинен и пытается зайти в защищенную зону
+      // Логика перенаправления
       if (!isLoggedIn && isProtectedRoute) {
-        if (kDebugMode) debugPrint('→ Redirecting to /auth');
         return '/auth';
       }
 
-      // Если залогинен и пытается зайти на экран логина
       if (isLoggedIn && isAuthRoute) {
-        if (kDebugMode) debugPrint('→ Redirecting to /');
         return '/';
       }
 
       return null;
     },
     routes: [
+      // Главный экран (Dashboard)
       GoRoute(
         path: '/',
         builder: (context, state) => const MainScreen(),
       ),
+
+      // Авторизация
       GoRoute(
         path: '/auth',
         builder: (context, state) => const AuthScreen(),
       ),
+
+      // Профиль пользователя
       GoRoute(
         path: '/profile',
         builder: (context, state) {
@@ -70,14 +75,20 @@ final routerProvider = Provider<GoRouter>((ref) {
           return ProfileScreen(currentEmail: email);
         },
       ),
+
+      // Настройки: Язык
       GoRoute(
         path: '/language',
         builder: (context, state) => const LanguageScreen(),
       ),
+
+      // Настройки: Уведомления
       GoRoute(
         path: '/notifications',
         builder: (context, state) => const NotificationsScreen(),
       ),
+
+      // Экран оплаты/подписки
       GoRoute(
         path: '/payment',
         builder: (context, state) {
@@ -91,7 +102,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
-      // Роут настройки бота
+
+      // Первичная настройка бота
       GoRoute(
         path: '/bot-config/:botId/:botName/:botCategory',
         builder: (context, state) => BotConfigScreen(
@@ -100,22 +112,44 @@ final routerProvider = Provider<GoRouter>((ref) {
           botCategory: state.pathParameters['botCategory']!,
         ),
       ),
-      // Роут управления конкретным ботом
+
+      // Панель управления конкретным ботом
       GoRoute(
         path: '/bot-management/:botId',
         builder: (context, state) => BotManagementScreen(
           business: state.extra as Business,
         ),
       ),
+
+      // Список товаров (Прайс-лист)
+      GoRoute(
+        path: '/price-list',
+        builder: (context, state) => PriceListScreen(
+          business: state.extra as Business,
+        ),
+      ),
+
+      // Создание или редактирование товара (Задача 31)
+      GoRoute(
+        path: '/product-edit',
+        builder: (context, state) {
+          final data = state.extra as Map<String, dynamic>;
+          return ProductEditScreen(
+            business: data['business'] as Business,
+            product: data['product'] as Map<String, dynamic>?,
+          );
+        },
+      ),
     ],
   );
 });
 
+/// Класс-утилита для прослушивания событий Supabase Auth
 class _AuthNotifier extends ChangeNotifier {
   _AuthNotifier(SupabaseClient supabase) {
     supabase.auth.onAuthStateChange.listen((data) {
       if (kDebugMode) {
-        debugPrint('=== AUTH STATE CHANGED: ${data.event} ===');
+        print('Router Auth Change Event: ${data.event}');
       }
       notifyListeners();
     });

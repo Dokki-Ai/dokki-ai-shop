@@ -17,7 +17,9 @@ class BusinessCard extends StatelessWidget {
   Widget build(BuildContext context) {
     // Статус: если botId не пуст — Активен, иначе — Настройка
     final bool isConfigured = business.botId.isNotEmpty;
-    const double cardHeight = 160.0;
+
+    // ЗАДАЧА 35: Увеличиваем высоту со 160 до 170
+    const double cardHeight = 170.0;
 
     return GestureDetector(
       onTap: onManage,
@@ -46,8 +48,8 @@ class BusinessCard extends StatelessWidget {
                 bottomLeft: Radius.circular(16),
               ),
               child: SizedBox(
-                width: cardHeight,
-                height: cardHeight,
+                width: cardHeight, // Теперь 170
+                height: cardHeight, // Теперь 170
                 child: CachedNetworkImage(
                   imageUrl: business.imageUrl ?? '',
                   fit: BoxFit.cover,
@@ -70,7 +72,7 @@ class BusinessCard extends StatelessWidget {
               ),
             ),
 
-            // Правый блок: Контент (строго по структуре bot_card)
+            // Правый блок: Контент
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
@@ -93,7 +95,7 @@ class BusinessCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
 
-                    // 2. Описание (2 строки, БЕЗ Expanded)
+                    // 2. Описание (2 строки)
                     Text(
                       business.botDescription,
                       maxLines: 2,
@@ -107,7 +109,7 @@ class BusinessCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
 
-                    // 3. Статус Row (фиксированная высота)
+                    // 3. Статус Row
                     Row(
                       children: [
                         Container(
@@ -130,9 +132,8 @@ class BusinessCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
 
-                    // 4. Кнопка (высота 32, прижата к низу через Spacer)
+                    // 4. Кнопка
                     const Spacer(),
                     SizedBox(
                       width: double.infinity,
