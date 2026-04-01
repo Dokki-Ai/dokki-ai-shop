@@ -1,7 +1,7 @@
 {
-  "version": 2,
-  "buildCommand": "bash install-flutter.sh",
+  "buildCommand": "flutter build web --release",
   "outputDirectory": "build/web",
+  "framework": null,
   "rewrites": [
     {
       "source": "/(.*)",
