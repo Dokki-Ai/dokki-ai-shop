@@ -6,7 +6,7 @@ class AppStrings {
 
   static AppLanguage currentLanguage = AppLanguage.ru;
 
-  // --- Статические методы для моделей ---
+  // --- Статические методы для моделей (перевод данных из БД) ---
   static String mapCategory(String key) {
     final map = {
       'admin': {
@@ -53,7 +53,7 @@ class AppStrings {
       },
       'Работа с возражениями': {
         AppLanguage.en: 'Handling Objections',
-        AppLanguage.ar: 'التعامل со встречными предложениями'
+        AppLanguage.ar: 'التعامل مع الاعتراضات'
       },
       'Передача менеджеру': {
         AppLanguage.en: 'Transfer to Manager',
@@ -104,7 +104,7 @@ class AppStrings {
   String get authForgotPassword => _map({
         AppLanguage.ru: 'Забыли пароль?',
         AppLanguage.en: 'Forgot password?',
-        AppLanguage.ar: 'هل نسит كلمة المرور؟'
+        AppLanguage.ar: 'هل نسيت كلمة المرور؟'
       });
   String get authNoAccount => _map({
         AppLanguage.ru: 'Нет аккаунта? Регистрация',
@@ -139,7 +139,7 @@ class AppStrings {
   String get authOr =>
       _map({AppLanguage.ru: 'или', AppLanguage.en: 'or', AppLanguage.ar: 'أو'});
 
-  // --- Каталог ---
+  // --- Каталог (Задача 63) ---
   String get catDetails => _map({
         AppLanguage.ru: 'Подробнее',
         AppLanguage.en: 'Details',
@@ -148,12 +148,12 @@ class AppStrings {
   String get catDescription => _map({
         AppLanguage.ru: 'Описание',
         AppLanguage.en: 'Description',
-        AppLanguage.ar: 'وصف'
+        AppLanguage.ar: 'الوصف'
       });
   String get catFunctions => _map({
         AppLanguage.ru: 'Функции',
-        AppLanguage.en: 'Functions',
-        AppLanguage.ar: 'وظائف'
+        AppLanguage.en: 'Features',
+        AppLanguage.ar: 'الميزات'
       });
   String get catEmpty => _map({
         AppLanguage.ru: 'Список пуст',
@@ -170,12 +170,12 @@ class AppStrings {
   String get paySubscription => _map({
         AppLanguage.ru: 'Подписка',
         AppLanguage.en: 'Subscription',
-        AppLanguage.ar: 'اشتراك'
+        AppLanguage.ar: 'اشتрак'
       });
   String get payMonth => _map(
       {AppLanguage.ru: 'мес', AppLanguage.en: 'month', AppLanguage.ar: 'شهر'});
   String get payYear => _map(
-      {AppLanguage.ru: 'год', AppLanguage.en: 'year', AppLanguage.ar: 'сنة'});
+      {AppLanguage.ru: 'год', AppLanguage.en: 'year', AppLanguage.ar: 'سنة'});
   String get payAction => _map({
         AppLanguage.ru: 'ПОДКЛЮЧИТЬ ЗА',
         AppLanguage.en: 'CONNECT FOR',
@@ -201,12 +201,12 @@ class AppStrings {
   String get connStep1Title => _map({
         AppLanguage.ru: 'Шаг 1: Подключение Telegram',
         AppLanguage.en: 'Step 1: Telegram Connection',
-        AppLanguage.ar: 'الخطوة ١'
+        AppLanguage.ar: 'الخطوة ١: ربط تلغرام'
       });
   String get connStep2Title => _map({
         AppLanguage.ru: 'Шаг 2: Настройка сервера',
         AppLanguage.en: 'Step 2: Server Setup',
-        AppLanguage.ar: 'الخطوة ٢'
+        AppLanguage.ar: 'الخطوة ٢: إعداد الخادم'
       });
   String get connTelegramInstrTitle => _map({
         AppLanguage.ru: 'ИНСТРУКЦИЯ',
@@ -252,7 +252,7 @@ class AppStrings {
   String get connRailwayTokenLabel => _map({
         AppLanguage.ru: 'RAILWAY API ТОКЕН',
         AppLanguage.en: 'RAILWAY API TOKEN',
-        AppLanguage.ar: 'رمز Railway'
+        AppLanguage.ar: 'رمز Railway API'
       });
   String get connWorkspaceLabel => _map({
         AppLanguage.ru: 'WORKSPACE ID',
@@ -272,7 +272,7 @@ class AppStrings {
   String get connSuccessDeploy => _map({
         AppLanguage.ru: 'Бот успешно отправлен на деплой!',
         AppLanguage.en: 'Bot sent for deployment!',
-        AppLanguage.ar: 'تم إرسال البот للنشر!'
+        AppLanguage.ar: 'تم إرسال البوت للنشر بنجاح!'
       });
 
   // --- Мои боты ---
@@ -284,7 +284,7 @@ class AppStrings {
   String get myBotsEmpty => _map({
         AppLanguage.ru: 'У вас пока нет подключённых ботов',
         AppLanguage.en: 'You have no connected bots yet',
-        AppLanguage.ar: 'ليس لديك بوتات متصلة'
+        AppLanguage.ar: 'ليس لديك بوتات متصلة بعد'
       });
   String get myBotsGoCatalog => _map({
         AppLanguage.ru: 'Перейти в каталог',
@@ -336,7 +336,7 @@ class AppStrings {
   String get setVersion => _map({
         AppLanguage.ru: 'Версия',
         AppLanguage.en: 'Version',
-        AppLanguage.ar: 'الإصдар'
+        AppLanguage.ar: 'الإصدار'
       });
   String get setNotifSettings => _map({
         AppLanguage.ru: 'Настройки уведомлений',
@@ -403,7 +403,7 @@ class AppStrings {
   String get profCancel => _map({
         AppLanguage.ru: 'Отмена',
         AppLanguage.en: 'Cancel',
-        AppLanguage.ar: 'إлгاء'
+        AppLanguage.ar: 'إلغاء'
       });
   String get profSave => _map({
         AppLanguage.ru: 'Сохранить',
@@ -430,7 +430,7 @@ class AppStrings {
   String get notifPush => _map({
         AppLanguage.ru: 'Push-уведомления',
         AppLanguage.en: 'Push notifications',
-        AppLanguage.ar: 'إشعارات'
+        AppLanguage.ar: 'إشعارات Push'
       });
   String get notifPushSub => _map({
         AppLanguage.ru: 'Получать уведомления на устройство',

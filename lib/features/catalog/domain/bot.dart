@@ -1,23 +1,24 @@
 import '../../../core/localization/app_strings.dart';
 
 class Bot {
-  // Базовые поля модели
   final String id;
   final String name;
-  final String description;
+  final String description; // Fallback описание
   final String shortDescription;
   final String _categoryKey;
   final String tier;
   final String? imageUrl;
-  final List<String>? features;
+
+  // Поля локализации из БД
+  final String descriptionRu;
+  final String descriptionEn;
+  final String? descriptionAr;
+  final List<String> featuresRu; // JSONB списки из БД
+  final List<String> featuresEn;
+
   final String? githubRepo;
   final double? priceMonthly;
   final double? priceYearly;
-  final List<Map<String, dynamic>>? shortFeatures;
-
-  // Поля для локализации (описания)
-  final String? descriptionRu;
-  final String? descriptionAr;
 
   Bot({
     required this.id,
@@ -27,16 +28,16 @@ class Bot {
     required String category,
     required this.tier,
     this.imageUrl,
-    this.features,
+    required this.descriptionRu,
+    required this.descriptionEn,
+    this.descriptionAr,
+    required this.featuresRu,
+    required this.featuresEn,
     this.githubRepo,
     this.priceMonthly,
     this.priceYearly,
-    this.shortFeatures,
-    this.descriptionRu,
-    this.descriptionAr,
   }) : _categoryKey = category;
 
-  // Геттеры для категорий
   String get category => AppStrings.mapCategory(_categoryKey);
   String get categoryKey => _categoryKey;
 
@@ -49,48 +50,35 @@ class Bot {
       category: json['category'] as String? ?? 'general',
       tier: json['tier'] as String? ?? 'basic',
       imageUrl: json['image_url'] as String?,
-      features: (json['features'] as List?)?.map((e) => e.toString()).toList(),
+
+      descriptionRu: json['description_ru'] as String? ?? '',
+      descriptionEn: json['description_en'] as String? ?? '',
+      descriptionAr: json['description_ar'] as String?,
+
+      // Парсинг JSONB списков
+      featuresRu: List<String>.from(json['features_ru'] ?? []),
+      featuresEn: List<String>.from(json['features_en'] ?? []),
+
       githubRepo: json['github_repo'] as String?,
       priceMonthly: (json['price_monthly'] as num?)?.toDouble(),
-      priceYearly: (json['price_yearly'] as num?)?.toDouble() ??
-          ((json['price_monthly'] as num?)?.toDouble() ?? 0) * 10,
-      shortFeatures: (json['short_features'] as List?)
-          ?.map((e) => e as Map<String, dynamic>)
-          .toList(),
-      // Маппинг локализованных полей из БД
-      descriptionRu: json['description_ru'] as String?,
-      descriptionAr: json['description_ar'] as String?,
+      priceYearly: (json['price_yearly'] as num?)?.toDouble(),
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'name': name,
-      'description': description,
-      'specialization': shortDescription,
-      'category': _categoryKey,
-      'tier': tier,
-      'image_url': imageUrl,
-      'features': features,
-      'github_repo': githubRepo,
-      'price_monthly': priceMonthly,
-      'price_yearly': priceYearly,
-      'short_features': shortFeatures,
-      'description_ru': descriptionRu,
-      'description_ar': descriptionAr,
-    };
-  }
-
-  /// Получение локализованного описания (полного)
+  /// Метод получения описания под язык
   String getLocalizedDescription(AppLanguage language) {
     switch (language) {
       case AppLanguage.ru:
-        return descriptionRu ?? description;
+        return descriptionRu.isNotEmpty ? descriptionRu : description;
       case AppLanguage.ar:
         return descriptionAr ?? description;
       case AppLanguage.en:
-        return description;
+        return descriptionEn.isNotEmpty ? descriptionEn : description;
     }
+  }
+
+  /// Метод получения списка функций под язык
+  List<String> getLocalizedFeatures(AppLanguage language) {
+    return language == AppLanguage.ru ? featuresRu : featuresEn;
   }
 }

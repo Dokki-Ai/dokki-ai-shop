@@ -12,6 +12,7 @@ class CatalogScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // ВАЖНО: Убедись, что провайдер называется именно botsProvider или botCatalogProvider
     final botsAsync = ref.watch(botsProvider);
     final s = ref.watch(stringsProvider);
 
@@ -34,16 +35,39 @@ class CatalogScreen extends ConsumerWidget {
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.accent),
         ),
-        error: (err, stack) => Center(
-          child: Text(
-            'Ошибка: $err',
-            style: const TextStyle(
-              color: AppColors.error,
-              fontFamily: 'Inter',
+        error: (err, stack) {
+          // ДЕБАГ: Логируем ошибку, если запрос к Supabase упал
+          debugPrint('-----------------------------------------');
+          debugPrint('❌ ОШИБКА ЗАГРУЗКИ КАТАЛОГА:');
+          debugPrint('ОШИБКА: $err');
+          debugPrint('СТЕКТРЕЙС: $stack');
+          debugPrint('-----------------------------------------');
+
+          return Center(
+            child: Text(
+              'Ошибка: $err',
+              style: const TextStyle(
+                color: AppColors.error,
+                fontFamily: 'Inter',
+              ),
             ),
-          ),
-        ),
+          );
+        },
         data: (bots) {
+          // ДЕБАГ: Логируем данные, если запрос прошел успешно
+          debugPrint('-----------------------------------------');
+          debugPrint('✅ ДАННЫЕ ПОЛУЧЕНЫ УСПЕШНО');
+          debugPrint('✅ ЗАГРУЖЕНО БОТОВ: ${bots.length}');
+          if (bots.isNotEmpty) {
+            debugPrint('📦 ИМЕНА: ${bots.map((b) => b.name).toList()}');
+            debugPrint(
+                '📦 КЛЮЧИ КАТЕГОРИЙ: ${bots.map((b) => b.categoryKey).toList()}');
+          } else {
+            debugPrint(
+                '⚠️ ПРЕДУПРЕЖДЕНИЕ: Список пуст. Проверь RLS или флаг is_active в БД.');
+          }
+          debugPrint('-----------------------------------------');
+
           if (bots.isEmpty) {
             return Center(
               child: Text(
@@ -65,8 +89,6 @@ class CatalogScreen extends ConsumerWidget {
                       ? 2
                       : 1;
 
-              // Если экран узкий (мобилка), оставляем привычный отступ 16,
-              // на широких экранах увеличиваем для эстетики.
               final double horizontalPadding =
                   constraints.maxWidth > 600 ? 24.0 : 16.0;
 
@@ -75,8 +97,6 @@ class CatalogScreen extends ConsumerWidget {
                     horizontal: horizontalPadding, vertical: 12),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: crossAxisCount,
-                  // Для 1 колонки делаем карточку вытянутой (как раньше),
-                  // для сетки — ближе к квадрату.
                   childAspectRatio: crossAxisCount == 1 ? 2.2 : 1.3,
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
@@ -86,9 +106,10 @@ class CatalogScreen extends ConsumerWidget {
                   final bot = bots[index];
                   return BotCard(
                     bot: bot,
-                    isGridMode: crossAxisCount > 1, // Передаем флаг режима
+                    isGridMode: crossAxisCount > 1,
+                    // ИСПРАВЛЕНО: Переход по categoryKey для открытия экрана тарифов
                     onConnect: () => context.push(
-                      '/bot-config/${bot.id}/${bot.name}/${bot.categoryKey}',
+                      '/bot-details/${bot.categoryKey}',
                     ),
                   );
                 },

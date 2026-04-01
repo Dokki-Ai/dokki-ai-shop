@@ -15,6 +15,7 @@ import '../../features/bot_management/presentation/screens/bot_management_screen
 import '../../features/bot_management/presentation/screens/bot_config_screen.dart';
 import '../../features/bot_management/presentation/screens/price_list_screen.dart';
 import '../../features/bot_management/presentation/screens/product_edit_screen.dart';
+import '../../features/catalog/presentation/screens/bot_detail_screen.dart';
 
 // Импорты домена
 import '../../features/bot_management/domain/business.dart';
@@ -55,7 +56,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      // Главный экран (Dashboard)
+      // Главный экран (Магазин / Dashboard)
       GoRoute(
         path: '/',
         builder: (context, state) => const MainScreen(),
@@ -65,6 +66,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/auth',
         builder: (context, state) => const AuthScreen(),
+      ),
+
+      // Детали бота (принимает категорию: admin, sales, support)
+      GoRoute(
+        path: '/bot-details/:category',
+        builder: (context, state) {
+          final category = state.pathParameters['category'] ?? 'admin';
+          return BotDetailScreen(category: category);
+        },
       ),
 
       // Профиль пользователя
@@ -115,7 +125,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Панель управления конкретным ботом
       GoRoute(
-        path: '/bot-management/:botId',
+        path: '/bot-management/:id',
         builder: (context, state) => BotManagementScreen(
           business: state.extra as Business,
         ),
@@ -129,7 +139,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
-      // Создание или редактирование товара (Задача 31)
+      // Создание или редактирование товара
       GoRoute(
         path: '/product-edit',
         builder: (context, state) {

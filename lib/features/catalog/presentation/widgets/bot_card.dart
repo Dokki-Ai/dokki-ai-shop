@@ -17,6 +17,25 @@ class BotCard extends ConsumerWidget {
     this.isGridMode = false,
   });
 
+  // --- НАДЕЖНЫЙ СБОРЩИК URL (Задача 66) ---
+  String _getFinalUrl(String? rawPath) {
+    if (rawPath == null || rawPath.isEmpty) return '';
+
+    // Если в БД уже лежит полная ссылка
+    if (rawPath.startsWith('http')) {
+      return rawPath.contains('?') ? '$rawPath&v=1.0.2' : '$rawPath?v=1.0.2';
+    }
+
+    // Извлекаем только имя файла (например, 'sales.png')
+    final fileName = rawPath.split('/').last;
+
+    // Твой эндпоинт Supabase Storage
+    const baseUrl =
+        'https://clpksrqstnywmrvvzwxu.supabase.co/storage/v1/object/public/bot-images/shop/';
+
+    return '$baseUrl$fileName?v=1.0.2';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(stringsProvider);
@@ -48,7 +67,7 @@ class BotCard extends ConsumerWidget {
       children: [
         Expanded(
           flex: 5,
-          child: _buildImage(),
+          child: _buildImageWidget(),
         ),
         Expanded(
           flex: 6,
@@ -65,9 +84,9 @@ class BotCard extends ConsumerWidget {
     return Row(
       children: [
         SizedBox(
-          width: 170,
-          height: 170,
-          child: _buildImage(),
+          width: 150, // Немного уменьшил для баланса
+          height: double.infinity,
+          child: _buildImageWidget(),
         ),
         Expanded(
           child: Padding(
@@ -79,23 +98,13 @@ class BotCard extends ConsumerWidget {
     );
   }
 
-  // --- ЛОГИКА ОБРАБОТКИ ИЗОБРАЖЕНИЯ (МАГАЗИН) ---
-  Widget _buildImage() {
-    // 1. Берем базовый URL
-    String rawUrl = bot.imageUrl ?? '';
-
-    // 2. Внедряем папку /shop/ и добавляем версию для очистки кэша
-    // Это позволит тебе не менять ссылки в базе данных вручную
-    String finalUrl = rawUrl;
-    if (rawUrl.isNotEmpty) {
-      finalUrl = rawUrl.replaceFirst('bot-images/', 'bot-images/shop/');
-      finalUrl = '$finalUrl?v=1.0.2';
-    }
+  Widget _buildImageWidget() {
+    final finalUrl = _getFinalUrl(bot.imageUrl);
 
     return CachedNetworkImage(
       imageUrl: finalUrl,
-      fit: BoxFit.cover,
-      alignment: Alignment.topCenter,
+      fit: BoxFit.contain, // contain лучше для прозрачных PNG
+      alignment: Alignment.center,
       placeholder: (context, url) => Container(
         color: AppColors.background,
         child: const Center(
@@ -103,19 +112,22 @@ class BotCard extends ConsumerWidget {
               strokeWidth: 2, color: AppColors.accent),
         ),
       ),
-      errorWidget: (context, url, error) => Container(
-        color: AppColors.background,
-        child: const Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.smart_toy_outlined,
-                color: AppColors.textSecondary, size: 40),
-            SizedBox(height: 4),
-            Text('No Image',
-                style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
-          ],
-        ),
-      ),
+      errorWidget: (context, url, error) {
+        return Container(
+          color: AppColors.background,
+          child: const Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.smart_toy_outlined,
+                  color: AppColors.textSecondary, size: 40),
+              SizedBox(height: 4),
+              Text('No Image',
+                  style:
+                      TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -137,7 +149,7 @@ class BotCard extends ConsumerWidget {
         const SizedBox(height: 4),
         Text(
           bot.shortDescription,
-          maxLines: 2,
+          maxLines: isVertical ? 2 : 3,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             color: AppColors.textSecondary,
@@ -156,12 +168,12 @@ class BotCard extends ConsumerWidget {
           ),
         ),
         const Spacer(),
-        _buildButton(),
+        _buildButton(s),
       ],
     );
   }
 
-  Widget _buildButton() {
+  Widget _buildButton(dynamic s) {
     return SizedBox(
       width: double.infinity,
       height: 36,
@@ -174,9 +186,9 @@ class BotCard extends ConsumerWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           padding: EdgeInsets.zero,
         ),
-        child: const Text(
-          'ПОДКЛЮЧИТЬ',
-          style: TextStyle(
+        child: Text(
+          s.catDetails.toUpperCase(),
+          style: const TextStyle(
               fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'Inter'),
         ),
       ),
