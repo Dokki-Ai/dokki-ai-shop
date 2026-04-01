@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 
-import 'package:dokki_ai_shop/core/theme/app_theme.dart';
+import '../../../../core/theme/app_theme.dart';
+// ИСПРАВЛЕННЫЕ ПУТИ ИМПОРТА (на два уровня вверх)
+import '../../providers/dashboard_providers.dart';
+import '../../domain/dashboard_metrics.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -12,43 +15,54 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  final String _activeBots = "12";
-  final String _totalMessages = "8 432";
-  final String _activeUsers = "1 204";
-  final String _avgResponse = "< 2 сек";
-
   @override
   Widget build(BuildContext context) {
+    // Подключаем наш новый провайдер реальных метрик
+    final metricsAsync = ref.watch(dashboardMetricsProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Dashboard'),
         backgroundColor: AppColors.surface,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final isDesktop = constraints.maxWidth > 800;
+      body: metricsAsync.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.accent),
+        ),
+        error: (error, stack) => Center(
+          child: Text(
+            'Ошибка загрузки данных: $error',
+            style: const TextStyle(color: AppColors.error),
+          ),
+        ),
+        data: (metrics) => SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isDesktop = constraints.maxWidth > 800;
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Обзор аналитики',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Обзор аналитики',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                isDesktop ? _buildDesktopGrid() : _buildMobileList(),
-                const SizedBox(height: 32),
-                _buildChartSection(),
-              ],
-            );
-          },
+                  const SizedBox(height: 24),
+                  isDesktop
+                      ? _buildDesktopGrid(metrics)
+                      : _buildMobileList(metrics),
+                  const SizedBox(height: 32),
+                  _buildChartSection(),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -69,7 +83,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                // ИСПРАВЛЕНИЕ: использование withValues вместо withOpacity
                 color: AppColors.accent.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
@@ -106,7 +119,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildDesktopGrid() {
+  Widget _buildDesktopGrid(DashboardMetrics metrics) {
     return GridView.count(
       crossAxisCount: 2,
       crossAxisSpacing: 24,
@@ -114,13 +127,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       childAspectRatio: 3.5,
-      children: _getCards(),
+      children: _getCards(metrics),
     );
   }
 
-  Widget _buildMobileList() {
+  Widget _buildMobileList(DashboardMetrics metrics) {
     return Column(
-      children: _getCards().map((card) {
+      children: _getCards(metrics).map((card) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 16),
           child: card,
@@ -129,12 +142,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  List<Widget> _getCards() {
+  List<Widget> _getCards(DashboardMetrics metrics) {
     return [
-      _buildStatCard(Icons.smart_toy, _activeBots, 'бота активно'),
-      _buildStatCard(Icons.message, _totalMessages, 'сообщений обработано'),
-      _buildStatCard(Icons.people, _activeUsers, 'активных пользователей'),
-      _buildStatCard(Icons.timer, _avgResponse, 'среднее время ответа'),
+      _buildStatCard(
+          Icons.smart_toy, metrics.activeBots.toString(), 'бота активно'),
+      _buildStatCard(Icons.message, metrics.totalMessages.toString(),
+          'сообщений обработано'),
+      _buildStatCard(Icons.people, metrics.activeUsers.toString(),
+          'активных пользователей'),
+      _buildStatCard(
+          Icons.timer, metrics.avgResponseTime, 'среднее время ответа'),
     ];
   }
 
@@ -228,15 +245,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   maxY: 1000,
                   lineBarsData: [
                     LineChartBarData(
-                      // ИСПРАВЛЕНИЕ: убран const из списка спотов
-                      spots: [
-                        const FlSpot(0, 340),
-                        const FlSpot(1, 420),
-                        const FlSpot(2, 280),
-                        const FlSpot(3, 850),
-                        const FlSpot(4, 600),
-                        const FlSpot(5, 450),
-                        const FlSpot(6, 750),
+                      spots: const [
+                        FlSpot(0, 340),
+                        FlSpot(1, 420),
+                        FlSpot(2, 280),
+                        FlSpot(3, 850),
+                        FlSpot(4, 600),
+                        FlSpot(5, 450),
+                        FlSpot(6, 750),
                       ],
                       isCurved: true,
                       color: AppColors.accent,
@@ -245,7 +261,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       dotData: const FlDotData(show: false),
                       belowBarData: BarAreaData(
                         show: true,
-                        // ИСПРАВЛЕНИЕ: withValues для фона графика
                         color: AppColors.accent.withValues(alpha: 0.15),
                       ),
                     ),

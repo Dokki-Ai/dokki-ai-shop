@@ -22,7 +22,8 @@ class MainScreen extends ConsumerStatefulWidget {
 }
 
 class _MainScreenState extends ConsumerState<MainScreen> {
-  int _currentIndex = 0;
+  int _currentIndex = -1;
+  bool _isInitialized = false;
 
   final List<Widget> _screens = [
     const DashboardScreen(), // 0 (только десктоп)
@@ -31,6 +32,18 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     const SettingsScreen(), // 3
     const SupportScreen(), // 4
   ];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isInitialized) {
+      // Определяем устройство (десктоп >= 800px)
+      final isDesktop = MediaQuery.of(context).size.width > 800;
+      // Десктоп стартует с 0 (Dashboard), Мобайл стартует с 1 (Shop)
+      _currentIndex = isDesktop ? 0 : 1;
+      _isInitialized = true;
+    }
+  }
 
   void _onTap(int index) {
     setState(() {
@@ -98,16 +111,12 @@ class _MainScreenState extends ConsumerState<MainScreen> {
               ],
             ),
           ),
-
-          // Передаем иконки: первая стандартная, остальные FontAwesome
           _sidebarItem(Icons.dashboard, 'Dashboard', 0),
           _sidebarItem(FontAwesomeIcons.store, s.navShop, 1),
           _sidebarItem(FontAwesomeIcons.robot, s.navMyBots, 2),
           _sidebarItem(FontAwesomeIcons.gear, s.navSettings, 3),
           _sidebarItem(FontAwesomeIcons.headset, s.navSupport, 4),
-
           const Spacer(),
-
           Padding(
             padding: const EdgeInsets.all(24.0),
             child: Text(
@@ -123,11 +132,9 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     );
   }
 
-  // Обновленный метод с безопасной проверкой типа иконки
   Widget _sidebarItem(dynamic icon, String label, int index) {
     final isActive = _currentIndex == index;
 
-    // Проверяем тип иконки и отрисовываем нужный виджет
     Widget iconWidget;
     if (icon is IconData) {
       iconWidget = Icon(icon,
@@ -177,9 +184,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   // --- MOBILE BOTTOM NAV ---
   Widget _buildBottomNav(AppStrings s) {
     return BottomNavigationBar(
-      // Если мы на Dashboard (0) и сужаем экран, подсвечиваем Shop (0)
       currentIndex: _currentIndex > 0 ? _currentIndex - 1 : 0,
-      // Смещаем индекс на +1, так как Dashboard отсутствует в мобильном меню
       onTap: (index) => _onTap(index + 1),
       backgroundColor: AppColors.surface,
       selectedItemColor: AppColors.accent,
