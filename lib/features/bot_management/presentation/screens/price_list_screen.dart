@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
-import 'package:file_picker/file_picker.dart';
+
 import '../../../../core/theme/app_theme.dart';
-import '../../domain/business.dart';
+import '../../../../core/localization/language_provider.dart';
 import '../../providers/bot_management_providers.dart';
-import '../../data/price_parser.dart';
+import '../../domain/business.dart';
 
 class PriceListScreen extends ConsumerStatefulWidget {
   final Business business;
@@ -20,12 +21,10 @@ class PriceListScreen extends ConsumerStatefulWidget {
 }
 
 class _PriceListScreenState extends ConsumerState<PriceListScreen> {
-  final TextEditingController _searchController = TextEditingController();
-
   List<Map<String, dynamic>> _products = [];
   bool _isLoading = true;
-  String _searchQuery = '';
-  bool _isSearching = false;
+  int _sortColumnIndex = 0;
+  bool _isAscending = true;
 
   @override
   void initState() {
@@ -33,257 +32,223 @@ class _PriceListScreenState extends ConsumerState<PriceListScreen> {
     _loadProducts();
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  double _parsePrice(dynamic value) {
-    if (value == null) {
-      return 0.0;
-    }
-    if (value is num) {
-      return value.toDouble();
-    }
-    if (value is String) {
-      return double.tryParse(value) ?? 0.0;
-    }
-    return 0.0;
-  }
-
   Future<void> _loadProducts() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      final products = await ref.read(priceListRepositoryProvider).getProducts(
+      final data = await ref.read(priceListRepositoryProvider).getProducts(
             telegramUsername: widget.business.telegramUsername,
-            searchQuery: _searchQuery.isEmpty ? null : _searchQuery,
           );
       if (mounted) {
         setState(() {
-          _products = products;
+          _products = data;
           _isLoading = false;
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка загрузки: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _pickPriceFile() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.any);
-    if (result == null || result.files.single.path == null) {
-      return;
-    }
+  double _parsePrice(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString()) ?? 0.0;
+  }
 
-    setState(() => _isLoading = true);
-    try {
-      final products = await PriceParser.parseFile(result.files.single.path!);
-      if (products.isNotEmpty) {
-        final success =
-            await ref.read(priceListRepositoryProvider).uploadPriceList(
-                  telegramUsername: widget.business.telegramUsername,
-                  products: products,
-                );
-        if (success) {
-          await _loadProducts();
-        }
+  void _onSort(int columnIndex, bool ascending) {
+    setState(() {
+      _sortColumnIndex = columnIndex;
+      _isAscending = ascending;
+      if (columnIndex == 0) {
+        _products.sort((a, b) => ascending
+            ? (a['name'] ?? '').compareTo(b['name'] ?? '')
+            : (b['name'] ?? '').compareTo(a['name'] ?? ''));
+      } else if (columnIndex == 2) {
+        _products.sort((a, b) => ascending
+            ? _parsePrice(a['price']).compareTo(_parsePrice(b['price']))
+            : _parsePrice(b['price']).compareTo(_parsePrice(a['price'])));
       }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final s = ref.watch(stringsProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppColors.textPrimary),
-          onPressed: () => context.pop(),
-        ),
-        title: _isSearching
-            ? TextField(
-                controller: _searchController,
-                autofocus: true,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: InputDecoration(
-                  hintText: 'Поиск товара...',
-                  border: InputBorder.none,
-                  hintStyle: TextStyle(
-                      color: AppColors.textSecondary.withValues(alpha: 0.5)),
-                ),
-                onChanged: (value) {
-                  _searchQuery = value;
-                  _loadProducts();
-                },
-              )
-            : const Text(
-                'Прайс-лист',
-                style: TextStyle(
-                    color: AppColors.textPrimary, fontWeight: FontWeight.bold),
-              ),
+        title: Text(widget.business.botName),
+        backgroundColor: AppColors.surface,
         actions: [
           IconButton(
-            icon:
-                const Icon(Icons.file_upload_outlined, color: AppColors.accent),
-            onPressed: _isLoading ? null : _pickPriceFile,
-          ),
-          IconButton(
-            icon: Icon(
-                _isSearching ? Icons.close_rounded : Icons.search_rounded,
-                color: AppColors.textPrimary),
-            onPressed: () {
-              setState(() {
-                _isSearching = !_isSearching;
-                if (!_isSearching) {
-                  _searchController.clear();
-                  _searchQuery = '';
-                  _loadProducts();
-                }
-              });
-            },
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadProducts,
           ),
         ],
       ),
-      body: _buildBody(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await context.push('/product-edit', extra: {
-            'business': widget.business,
-            'product': null,
-          });
-          if (result == true) {
-            _loadProducts();
-          }
-        },
-        backgroundColor: AppColors.accent,
-        child: const Icon(Icons.add_rounded, color: Colors.white, size: 30),
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.accent))
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                final isDesktop = constraints.maxWidth > 800;
+                return isDesktop ? _buildDesktopTable(s) : _buildMobileList();
+              },
+            ),
+    );
+  }
+
+  Widget _buildDesktopTable(dynamic s) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: PaginatedDataTable(
+        header: const Text('Manage Price List',
+            style: TextStyle(color: AppColors.textPrimary)),
+        rowsPerPage: _products.length > 50
+            ? 50
+            : (_products.isEmpty ? 1 : _products.length),
+        showCheckboxColumn: false,
+        sortColumnIndex: _sortColumnIndex,
+        sortAscending: _isAscending,
+        columns: [
+          DataColumn(label: const Text('Название'), onSort: _onSort),
+          const DataColumn(label: Text('Категория')),
+          DataColumn(label: const Text('Цена'), onSort: _onSort, numeric: true),
+          const DataColumn(label: Text('Действия')),
+        ],
+        source: _PriceDataSource(
+          context: context,
+          ref: ref,
+          products: _products,
+          business: widget.business,
+          parsePrice: _parsePrice,
+          onRefresh: _loadProducts,
+        ),
       ),
     );
   }
 
-  Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(
-          child: CircularProgressIndicator(color: AppColors.accent));
-    }
-    if (_products.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.inventory_2_outlined,
-                size: 64,
-                color: AppColors.textSecondary.withValues(alpha: 0.3)),
-            const SizedBox(height: 16),
-            const Text(
-              'Прайс-лист пуст',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+  Widget _buildMobileList() {
+    return RefreshIndicator(
+      onRefresh: _loadProducts,
+      child: ListView.builder(
+        itemCount: _products.length,
+        padding: const EdgeInsets.all(16),
+        itemBuilder: (context, index) {
+          final product = _products[index];
+          return Card(
+            color: AppColors.surface,
+            margin: const EdgeInsets.only(bottom: 12),
+            child: ListTile(
+              title: Text(product['name'] ?? '',
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text(product['category'] ?? 'General'),
+              trailing: Text('${_parsePrice(product['price'])} AED',
+                  style: const TextStyle(color: AppColors.accent)),
+              onTap: () => context.push('/product-edit', extra: {
+                'business': widget.business,
+                'product': product,
+              }),
             ),
-          ],
-        ),
-      );
-    }
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: _products.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final product = _products[index];
-        return _ProductCard(
-          name: product['name'] ?? 'Без названия',
-          category: product['category'] ?? 'Общее',
-          price: _parsePrice(product['price']),
-          onTap: () async {
-            final result = await context.push('/product-edit', extra: {
-              'business': widget.business,
-              'product': product,
-            });
-            if (result == true) {
-              _loadProducts();
-            }
-          },
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
 
-class _ProductCard extends StatelessWidget {
-  final String name;
-  final String category;
-  final double price;
-  final VoidCallback onTap;
+class _PriceDataSource extends DataTableSource {
+  final BuildContext context;
+  final WidgetRef ref;
+  final List<Map<String, dynamic>> products;
+  final Business business;
+  final double Function(dynamic) parsePrice;
+  final Future<void> Function() onRefresh;
 
-  const _ProductCard({
-    required this.name,
-    required this.category,
-    required this.price,
-    required this.onTap,
+  _PriceDataSource({
+    required this.context,
+    required this.ref,
+    required this.products,
+    required this.business,
+    required this.parsePrice,
+    required this.onRefresh,
   });
 
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  DataRow? getRow(int index) {
+    if (index >= products.length) return null;
+    final product = products[index];
+    final productId = (product['product_id'] ?? product['id']).toString();
+
+    return DataRow(cells: [
+      DataCell(Text(product['name'] ?? '',
+          style: const TextStyle(color: AppColors.textPrimary))),
+      DataCell(Text(product['category'] ?? 'General')),
+      DataCell(Text('${parsePrice(product['price'])} AED',
+          style: const TextStyle(
+              fontWeight: FontWeight.bold, color: AppColors.accent))),
+      DataCell(
+        Row(
           children: [
-            Text(
-              name,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+            IconButton(
+              icon: const FaIcon(FontAwesomeIcons.penToSquare, size: 16),
+              onPressed: () async {
+                // Переход на экран редактирования и ожидание возврата (если требуется обновление)
+                await context.push('/product-edit', extra: {
+                  'business': business,
+                  'product': product,
+                });
+                onRefresh(); // Обновляем список после возврата с экрана редактирования
+              },
             ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Text(category,
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 13)),
-                const SizedBox(width: 8),
-                const Text('•',
-                    style: TextStyle(color: AppColors.textSecondary)),
-                const SizedBox(width: 8),
-                Text(
-                  '${price.toStringAsFixed(0)} ₽',
-                  style: const TextStyle(
-                    color: AppColors.accent,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+            IconButton(
+              icon: const FaIcon(FontAwesomeIcons.trashCan,
+                  size: 16, color: Colors.redAccent),
+              onPressed: () async {
+                final confirmed = await _showDeleteDialog();
+                if (confirmed) {
+                  await ref.read(priceListRepositoryProvider).deleteProduct(
+                        telegramUsername: business.telegramUsername,
+                        productId: productId,
+                      );
+                  await onRefresh();
+                  notifyListeners();
+                }
+              },
             ),
           ],
         ),
       ),
-    );
+    ]);
   }
+
+  Future<bool> _showDeleteDialog() async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Confirm Delete'),
+            content: const Text('Are you sure you want to remove this item?'),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel')),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Delete',
+                    style: TextStyle(color: Colors.redAccent)),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  @override
+  bool get isRowCountApproximate => false;
+  @override
+  int get rowCount => products.length;
+  @override
+  int get selectedRowCount => 0;
 }

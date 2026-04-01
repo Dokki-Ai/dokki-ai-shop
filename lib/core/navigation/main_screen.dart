@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../theme/app_theme.dart';
 
 // ИМПОРТЫ ЭКРАНОВ
+import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/catalog/presentation/screens/catalog_screen.dart';
 import '../../features/my_bots/presentation/screens/my_bots_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
@@ -24,10 +25,11 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   int _currentIndex = 0;
 
   final List<Widget> _screens = [
-    const CatalogScreen(),
-    const MyBotsScreen(),
-    const SettingsScreen(),
-    const SupportScreen(),
+    const DashboardScreen(), // 0 (только десктоп)
+    const CatalogScreen(), // 1
+    const MyBotsScreen(), // 2
+    const SettingsScreen(), // 3
+    const SupportScreen(), // 4
   ];
 
   void _onTap(int index) {
@@ -97,11 +99,12 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             ),
           ),
 
-          // Передаем иконки напрямую
-          _sidebarItem(FontAwesomeIcons.store, s.navShop, 0),
-          _sidebarItem(FontAwesomeIcons.robot, s.navMyBots, 1),
-          _sidebarItem(FontAwesomeIcons.gear, s.navSettings, 2),
-          _sidebarItem(FontAwesomeIcons.headset, s.navSupport, 3),
+          // Передаем иконки: первая стандартная, остальные FontAwesome
+          _sidebarItem(Icons.dashboard, 'Dashboard', 0),
+          _sidebarItem(FontAwesomeIcons.store, s.navShop, 1),
+          _sidebarItem(FontAwesomeIcons.robot, s.navMyBots, 2),
+          _sidebarItem(FontAwesomeIcons.gear, s.navSettings, 3),
+          _sidebarItem(FontAwesomeIcons.headset, s.navSupport, 4),
 
           const Spacer(),
 
@@ -120,9 +123,22 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     );
   }
 
-  // Используем dynamic для иконки, чтобы избежать конфликтов FaIconData/IconData
+  // Обновленный метод с безопасной проверкой типа иконки
   Widget _sidebarItem(dynamic icon, String label, int index) {
     final isActive = _currentIndex == index;
+
+    // Проверяем тип иконки и отрисовываем нужный виджет
+    Widget iconWidget;
+    if (icon is IconData) {
+      iconWidget = Icon(icon,
+          size: 18,
+          color: isActive ? AppColors.accent : AppColors.textSecondary);
+    } else {
+      iconWidget = FaIcon(icon,
+          size: 18,
+          color: isActive ? AppColors.accent : AppColors.textSecondary);
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: InkWell(
@@ -138,11 +154,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           ),
           child: Row(
             children: [
-              FaIcon(
-                icon,
-                size: 18,
-                color: isActive ? AppColors.accent : AppColors.textSecondary,
-              ),
+              iconWidget,
               const SizedBox(width: 16),
               Text(
                 label,
@@ -165,8 +177,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   // --- MOBILE BOTTOM NAV ---
   Widget _buildBottomNav(AppStrings s) {
     return BottomNavigationBar(
-      currentIndex: _currentIndex,
-      onTap: _onTap,
+      // Если мы на Dashboard (0) и сужаем экран, подсвечиваем Shop (0)
+      currentIndex: _currentIndex > 0 ? _currentIndex - 1 : 0,
+      // Смещаем индекс на +1, так как Dashboard отсутствует в мобильном меню
+      onTap: (index) => _onTap(index + 1),
       backgroundColor: AppColors.surface,
       selectedItemColor: AppColors.accent,
       unselectedItemColor: AppColors.textSecondary,
