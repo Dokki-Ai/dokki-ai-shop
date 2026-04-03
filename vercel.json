@@ -1,8 +1,21 @@
 {
+  "version": 2,
   "buildCommand": "flutter build web --release",
   "outputDirectory": "build/web",
-  "framework": null,
   "headers": [
+    {
+      "source": "/apple-app-site-association",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    },
     {
       "source": "/.well-known/apple-app-site-association",
       "headers": [
@@ -16,7 +29,15 @@
   "rewrites": [
     {
       "source": "/.well-known/apple-app-site-association",
-      "destination": "/.well-known/apple-app-site-association"
+      "destination": "/apple-app-site-association"
+    },
+    {
+      "source": "/payment-success",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/payment-cancel",
+      "destination": "/index.html"
     },
     {
       "source": "/(.*)",
