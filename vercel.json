@@ -6,14 +6,8 @@
     {
       "source": "/.well-known/apple-app-site-association",
       "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/json"
-        },
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        }
+        { "key": "Content-Type", "value": "application/json" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
       ]
     }
   ],
@@ -23,11 +17,19 @@
       "destination": "/.well-known/apple-app-site-association"
     },
     {
+      "source": "/apple-app-site-association",
+      "destination": "/.well-known/apple-app-site-association"
+    },
+    {
       "source": "/payment-success",
       "destination": "/index.html"
     },
     {
       "source": "/payment-cancel",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/bot-config/(.*)",
       "destination": "/index.html"
     },
     {
