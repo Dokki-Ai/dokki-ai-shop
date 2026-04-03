@@ -1,10 +1,10 @@
 {
   "version": 2,
-  "buildCommand": "flutter build web --release",
+  "buildCommand": "flutter build web --release && cp -r public/* build/web/ || true",
   "outputDirectory": "build/web",
   "headers": [
     {
-      "source": "/apple-app-site-association",
+      "source": "/.well-known/apple-app-site-association",
       "headers": [
         {
           "key": "Content-Type",
@@ -15,21 +15,12 @@
           "value": "*"
         }
       ]
-    },
-    {
-      "source": "/.well-known/apple-app-site-association",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/json"
-        }
-      ]
     }
   ],
   "rewrites": [
     {
       "source": "/.well-known/apple-app-site-association",
-      "destination": "/apple-app-site-association"
+      "destination": "/.well-known/apple-app-site-association"
     },
     {
       "source": "/payment-success",

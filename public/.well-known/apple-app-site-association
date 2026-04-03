@@ -4,10 +4,7 @@
     "details": [
       {
         "appID": "XC339QP3L9.com.dokki.dokkiAiShop",
-        "paths": [
-          "/payment-success",
-          "/payment-cancel"
-        ]
+        "paths": ["/payment-success", "/payment-cancel"]
       }
     ]
   }
