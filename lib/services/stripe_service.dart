@@ -33,7 +33,8 @@ class StripeService {
         },
         body: jsonEncode({
           'priceId': priceId,
-          // ИСПОЛЬЗУЕМ HTTPS UNIVERSAL LINKS ВМЕСТО CUSTOM SCHEMES
+          // ИСПОЛЬЗУЕМ ТОЛЬКО HTTPS UNIVERSAL LINKS
+          // Это исключает ошибку "Bad state: Origin..."
           'successUrl': 'https://app.dokki.org/payment-success',
           'cancelUrl': 'https://app.dokki.org/payment-cancel',
         }),
@@ -43,24 +44,26 @@ class StripeService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final String? url = data['url'];
+        final String? stripeRedirectUrl = data['url'];
 
-        if (url != null) {
-          final uri = Uri.parse(url);
+        if (stripeRedirectUrl != null && stripeRedirectUrl.startsWith('http')) {
+          final uri = Uri.parse(stripeRedirectUrl);
 
-          // LaunchMode.externalApplication КРИТИЧЕН для Universal Links.
-          // Это заставляет iOS/Android проверить, есть ли приложение,
-          // готовое обработать обратный URL при редиректе.
-          if (await canLaunchUrl(uri)) {
-            debugPrint('StripeService: Launching Stripe Checkout URL...');
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-          } else {
-            debugPrint('StripeService: Could not launch URL $url');
+          debugPrint('StripeService: Launching Stripe Checkout URL...');
+
+          // LaunchMode.externalApplication КРИТИЧЕН.
+          // Мы открываем системный браузер. Когда оплата завершится,
+          // редирект на https://app.dokki.org будет перехвачен iOS/Android
+          // и вернет пользователя в приложение через Universal Links.
+          final launched =
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+          if (!launched) {
             throw 'Could not launch payment URL';
           }
         } else {
-          debugPrint('StripeService: URL is null in response');
-          throw 'Server returned empty checkout URL';
+          debugPrint('StripeService: Received invalid URL: $stripeRedirectUrl');
+          throw 'Server returned empty or invalid checkout URL';
         }
       } else {
         final errorData = jsonDecode(response.body);
