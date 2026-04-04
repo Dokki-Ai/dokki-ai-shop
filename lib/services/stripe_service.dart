@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class StripeService {
   final _supabase = Supabase.instance.client;
@@ -8,7 +9,8 @@ class StripeService {
   // Актуальный Price ID из Stripe
   static const String priceId = 'price_1THeDO1nVM8AbdfCUeaylULL';
 
-  Future<void> createCheckoutSession() async {
+  /// Создает сессию оплаты и запоминает, какого бота мы покупаем
+  Future<void> createCheckoutSession({required String botId}) async {
     final session = _supabase.auth.currentSession;
 
     if (session == null) {
@@ -17,10 +19,14 @@ class StripeService {
     }
 
     try {
+      // 💾 ШАГ 1: Сохраняем botId локально ДО редиректа
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('pending_bot_id', botId);
+      debugPrint('StripeService: Saved pending_bot_id: $botId');
+
       debugPrint('StripeService: Initiating checkout session...');
 
-      // Нативный вызов Supabase Edge Function.
-      // Автоматически добавляет 'Authorization': 'Bearer ${session.accessToken}'
+      // ШАГ 2: Запрашиваем сессию у Supabase Edge Function
       final response = await _supabase.functions.invoke(
         'create-checkout-session',
         body: {
@@ -30,41 +36,23 @@ class StripeService {
         },
       );
 
-      debugPrint('Stripe Response Status: ${response.status}');
-
       if (response.status == 200 || response.status == 201) {
-        // Нативный клиент уже возвращает распарсенный JSON в response.data
         final String? stripeRedirectUrl = response.data['url'];
 
         if (stripeRedirectUrl != null && stripeRedirectUrl.startsWith('http')) {
           final uri = Uri.parse(stripeRedirectUrl);
 
-          debugPrint('StripeService: Launching Stripe Checkout URL...');
-
-          // LaunchMode.externalApplication КРИТИЧЕН.
-          // Мы открываем системный браузер. Когда оплата завершится,
-          // редирект на https://app.dokki.org будет перехвачен iOS/Android
-          // или обработан Cloudflare во Flutter Web.
+          // Открываем Stripe во внешнем браузере
           final launched =
               await launchUrl(uri, mode: LaunchMode.externalApplication);
 
-          if (!launched) {
-            throw 'Could not launch payment URL';
-          }
+          if (!launched) throw 'Could not launch payment URL';
         } else {
-          debugPrint('StripeService: Received invalid URL: $stripeRedirectUrl');
-          throw 'Server returned empty or invalid checkout URL';
+          throw 'Server returned invalid checkout URL';
         }
       } else {
-        debugPrint('StripeService Error Response: ${response.data}');
         throw response.data?['error'] ?? 'Server error ${response.status}';
       }
-    } on FunctionException catch (e) {
-      debugPrint(
-          'StripeService FunctionException: ${e.reasonPhrase} - ${e.details}');
-      throw e.details?['error'] ??
-          e.reasonPhrase ??
-          'Edge Function connection error';
     } catch (e) {
       debugPrint('StripeService Exception: $e');
       rethrow;

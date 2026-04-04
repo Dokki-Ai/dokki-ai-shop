@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/localization/language_provider.dart';
 import '../../domain/bot.dart';
@@ -109,19 +108,21 @@ class BotCard extends ConsumerWidget {
   Widget _buildImageWidget() {
     final finalUrl = _getFinalUrl(bot.imageUrl);
 
-    return CachedNetworkImage(
-      imageUrl: finalUrl,
-      fit: BoxFit.contain, // Оставляем contain, чтобы картинка не обрезалась
-      alignment: Alignment.center,
-      placeholder: (context, url) => Container(
-        color: AppColors.background,
-        child: const Center(
-          child: CircularProgressIndicator(
-              strokeWidth: 2, color: AppColors.accent),
-        ),
-      ),
-      errorWidget: (context, url, error) {
-        debugPrint('DEBUG CachedNetworkImage Error on: $url');
+    return Image.network(
+      finalUrl,
+      fit: BoxFit.contain,
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Container(
+          color: AppColors.background,
+          child: const Center(
+            child: CircularProgressIndicator(
+                strokeWidth: 2, color: AppColors.accent),
+          ),
+        );
+      },
+      errorBuilder: (context, error, stackTrace) {
+        debugPrint('DEBUG Image.network Error on: $finalUrl');
         return Container(
           color: AppColors.background,
           child: const Column(

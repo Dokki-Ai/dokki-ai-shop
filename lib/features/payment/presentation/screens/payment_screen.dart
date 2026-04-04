@@ -42,7 +42,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       }
 
       // Вызываем реальный Stripe сервис
-      await StripeService().createCheckoutSession();
+      await StripeService().createCheckoutSession(botId: widget.botId);
 
       // После вызова Stripe браузер откроется автоматически через url_launcher
       // Приложение будет ждать в бэкграунде

@@ -1,19 +1,19 @@
 import '../../../core/localization/app_strings.dart';
+import 'package:flutter/foundation.dart';
 
 class Bot {
   final String id;
   final String name;
-  final String description; // Fallback описание
+  final String description;
   final String shortDescription;
   final String _categoryKey;
   final String tier;
   final String? imageUrl;
 
-  // Поля локализации из БД
   final String descriptionRu;
   final String descriptionEn;
   final String? descriptionAr;
-  final List<String> featuresRu; // JSONB списки из БД
+  final List<String> featuresRu;
   final List<String> featuresEn;
 
   final String? githubRepo;
@@ -42,30 +42,31 @@ class Bot {
   String get categoryKey => _categoryKey;
 
   factory Bot.fromJson(Map<String, dynamic> json) {
+    // ✅ ИСПРАВЛЕНО: Используем правильное имя колонки из Supabase
+    final String rawCategory = json['category_key'] as String? ?? 'general';
+
+    debugPrint(
+        '🤖 ПАРСИНГ: ${json['name']} | Key из БД: ${json['category_key']} -> Итог: $rawCategory');
+
     return Bot(
       id: json['id'] as String,
       name: json['name'] as String,
       description: json['description'] as String? ?? '',
       shortDescription: json['specialization'] as String? ?? '',
-      category: json['category'] as String? ?? 'general',
+      category: rawCategory,
       tier: json['tier'] as String? ?? 'basic',
       imageUrl: json['image_url'] as String?,
-
       descriptionRu: json['description_ru'] as String? ?? '',
       descriptionEn: json['description_en'] as String? ?? '',
       descriptionAr: json['description_ar'] as String?,
-
-      // Парсинг JSONB списков
       featuresRu: List<String>.from(json['features_ru'] ?? []),
       featuresEn: List<String>.from(json['features_en'] ?? []),
-
       githubRepo: json['github_repo'] as String?,
       priceMonthly: (json['price_monthly'] as num?)?.toDouble(),
       priceYearly: (json['price_yearly'] as num?)?.toDouble(),
     );
   }
 
-  /// Метод получения описания под язык
   String getLocalizedDescription(AppLanguage language) {
     switch (language) {
       case AppLanguage.ru:
@@ -77,7 +78,6 @@ class Bot {
     }
   }
 
-  /// Метод получения списка функций под язык
   List<String> getLocalizedFeatures(AppLanguage language) {
     return language == AppLanguage.ru ? featuresRu : featuresEn;
   }

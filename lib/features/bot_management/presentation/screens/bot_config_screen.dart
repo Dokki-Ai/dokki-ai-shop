@@ -265,19 +265,20 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
                       icon: const Icon(Icons.content_paste,
                           color: AppColors.accent, size: 28),
                       onPressed: () async {
-                        print('🔵 TG Paste button clicked!');
+                        debugPrint('🔵 TG Paste button clicked!');
                         final data =
                             await Clipboard.getData(Clipboard.kTextPlain);
-                        print('📋 Clipboard data: ${data?.text ?? "NULL"}');
+                        debugPrint(
+                            '📋 Clipboard data: ${data?.text ?? "NULL"}');
 
                         if (data?.text != null) {
-                          print('✅ Setting TG text to controller');
+                          debugPrint('✅ Setting TG text to controller');
                           setState(() {
                             _botTokenController.text = data!.text!;
                             _botTokenError = null;
                           });
                         } else {
-                          print('❌ TG Clipboard is empty');
+                          debugPrint('❌ TG Clipboard is empty');
                         }
                       },
                       tooltip: 'Paste',
@@ -314,8 +315,9 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
                       validator: (v) {
                         final key = v?.trim() ?? "";
                         if (key.isEmpty) return 'Введите ключ API';
-                        if (!key.startsWith('sk-'))
+                        if (!key.startsWith('sk-')) {
                           return 'Должен начинаться с "sk-"';
+                        }
                         return null;
                       },
                     ),
@@ -327,19 +329,20 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
                       icon: const Icon(Icons.content_paste,
                           color: AppColors.accent, size: 28),
                       onPressed: () async {
-                        print('🔵 OpenAI Paste button clicked!');
+                        debugPrint('🔵 OpenAI Paste button clicked!');
                         final data =
                             await Clipboard.getData(Clipboard.kTextPlain);
-                        print('📋 Clipboard data: ${data?.text ?? "NULL"}');
+                        debugPrint(
+                            '📋 Clipboard data: ${data?.text ?? "NULL"}');
 
                         if (data?.text != null) {
-                          print('✅ Setting OpenAI text to controller');
+                          debugPrint('✅ Setting OpenAI text to controller');
                           setState(() {
                             _apiKeyController.text = data!.text!;
                             _apiKeyError = null;
                           });
                         } else {
-                          print('❌ OpenAI Clipboard is empty');
+                          debugPrint('❌ OpenAI Clipboard is empty');
                         }
                       },
                       tooltip: 'Paste',

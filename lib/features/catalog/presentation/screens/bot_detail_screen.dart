@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
@@ -28,7 +27,7 @@ class BotDetailScreen extends ConsumerWidget {
 
     // Если путь уже является полной ссылкой
     if (rawPath.startsWith('http')) {
-      final url = '$rawPath?v=1.0.3';
+      final url = '$rawPath?v=1.0.5';
       debugPrint('DEBUG _buildImageUrl (direct http): $url');
       return url;
     }
@@ -40,7 +39,7 @@ class BotDetailScreen extends ConsumerWidget {
     const baseUrl =
         'https://capqdnwuquxdeuqnohps.supabase.co/storage/v1/object/public/bot-images/';
 
-    final fullUrl = '$baseUrl$fileName?v=1.0.3';
+    final fullUrl = '$baseUrl$fileName?v=1.0.5';
 
     // ЛОГ 2: Что получилось на выходе
     debugPrint('DEBUG _buildImageUrl output: $fullUrl');
@@ -100,17 +99,19 @@ class BotDetailScreen extends ConsumerWidget {
                       width: double.infinity,
                       height: 250,
                       color: AppColors.surface,
-                      child: CachedNetworkImage(
-                        imageUrl: _buildImageUrl(bot.imageUrl),
+                      child: Image.network(
+                        _buildImageUrl(bot.imageUrl),
                         fit: BoxFit.contain,
                         alignment: Alignment.center,
-                        placeholder: (context, url) => const Center(
-                            child: CircularProgressIndicator(
-                                color: AppColors.accent)),
-                        errorWidget: (context, url, error) {
-                          // ЛОГ 3: Если CachedNetworkImage не смог загрузить
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return const Center(
+                              child: CircularProgressIndicator(
+                                  color: AppColors.accent));
+                        },
+                        errorBuilder: (context, error, stackTrace) {
                           debugPrint(
-                              'DEBUG CachedNetworkImage ERROR for URL: $url');
+                              'DEBUG Image.network ERROR for URL: ${_buildImageUrl(bot.imageUrl)}');
                           return const Icon(Icons.smart_toy_outlined,
                               size: 64, color: AppColors.textSecondary);
                         },
@@ -223,7 +224,9 @@ class BotDetailScreen extends ConsumerWidget {
                           );
 
                           try {
-                            await StripeService().createCheckoutSession();
+                            // ✅ ИСПРАВЛЕНО: Передаем bot.id в сессию оплаты
+                            await StripeService()
+                                .createCheckoutSession(botId: bot.id);
                             if (context.mounted) Navigator.of(context).pop();
                           } catch (e) {
                             if (context.mounted) {

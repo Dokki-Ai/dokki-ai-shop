@@ -5,12 +5,18 @@ import '../services/stripe_service.dart';
 final checkoutLoadingProvider = StateProvider<bool>((ref) => false);
 
 class SubscribeButton extends ConsumerWidget {
-  const SubscribeButton({super.key});
+  // Добавили параметр, чтобы кнопка знала, какой бот в очереди на оплату
+  final String botId;
+
+  const SubscribeButton({
+    super.key,
+    required this.botId,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isLoading = ref.watch(checkoutLoadingProvider);
-    final stripeService = StripeService();
+    // Удалили неиспользуемую локальную переменную stripeService
 
     return SizedBox(
       width: double.infinity,
@@ -19,34 +25,37 @@ class SubscribeButton extends ConsumerWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF6366F1), // Dokki Primary Color
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           elevation: 0,
         ),
-        onPressed: isLoading 
-          ? null 
-          : () async {
-              ref.read(checkoutLoadingProvider.notifier).state = true;
-              try {
-                await stripeService.createCheckoutSession();
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: $e'),
-                      backgroundColor: Colors.redAccent,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
+        onPressed: isLoading
+            ? null
+            : () async {
+                ref.read(checkoutLoadingProvider.notifier).state = true;
+                try {
+                  // ИСПРАВЛЕНО: Передаем botId напрямую
+                  await StripeService().createCheckoutSession(botId: botId);
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error: $e'),
+                        backgroundColor: Colors.redAccent,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                } finally {
+                  ref.read(checkoutLoadingProvider.notifier).state = false;
                 }
-              } finally {
-                ref.read(checkoutLoadingProvider.notifier).state = false;
-              }
-            },
+              },
         child: isLoading
             ? const SizedBox(
                 height: 24,
                 width: 24,
-                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                child: CircularProgressIndicator(
+                    color: Colors.white, strokeWidth: 2),
               )
             : const Text(
                 'Unlock All Bots',
