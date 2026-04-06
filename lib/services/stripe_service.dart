@@ -11,47 +11,46 @@ class StripeService {
   }) async {
     try {
       debugPrint(
-          'StripeService: Создание сессии для плана $plan (бот: $botId)...');
+          '🚀 StripeService: Инициализация сессии для бота $botId, план: $plan');
 
-      // Вызываем Edge Function
       final response = await _supabase.functions.invoke(
         'create-checkout-session',
         body: {
           'botId': botId,
           'plan': plan,
-          // Редирект обратно на экран успеха с передачей ID бота в пути
-          'successUrl': 'https://app.dokki.org/payment-success/$botId',
+          // Ссылка на созданный выше HTML файл
+          'successUrl': 'https://app.dokki.org/payment-complete.html',
           'cancelUrl': 'https://app.dokki.org/',
         },
       );
 
-      // Проверка статуса ответа
       if (response.status != 200 && response.status != 201) {
         final errorMsg =
-            response.data?['error'] ?? 'Ошибка сервера ${response.status}';
+            response.data?['error'] ?? 'Ошибка сервера: ${response.status}';
         throw errorMsg;
       }
 
-      final String? stripeRedirectUrl = response.data['url'];
+      final String? stripeUrl = response.data['url'];
 
-      if (stripeRedirectUrl != null && stripeRedirectUrl.startsWith('http')) {
-        final uri = Uri.parse(stripeRedirectUrl);
+      if (stripeUrl != null && stripeUrl.startsWith('http')) {
+        final uri = Uri.parse(stripeUrl);
 
-        debugPrint('StripeService: Переход на Stripe в текущей вкладке...');
+        debugPrint(
+            '🌍 StripeService: Открытие Stripe в новой вкладке (_blank)');
 
-        // ИСПРАВЛЕНО: _self — самый стабильный вариант для мобильных браузеров.
-        // Приложение перезагрузится при возврате, но сессия восстановится в PaymentSuccessScreen.
+        // mode: LaunchMode.externalApplication + _blank гарантируют, что
+        // Flutter-вкладка не уйдет в фоновый сон или перезагрузку.
         final launched = await launchUrl(
           uri,
           mode: LaunchMode.externalApplication,
-          webOnlyWindowName: '_self',
+          webOnlyWindowName: '_blank',
         );
 
         if (!launched) {
-          throw 'Не удалось открыть страницу оплаты.';
+          throw 'Не удалось открыть страницу оплаты. Проверьте настройки браузера.';
         }
       } else {
-        throw 'Ошибка: Stripe не вернул валидную ссылку на оплату';
+        throw 'Ошибка: Stripe не вернул ссылку на оплату.';
       }
     } catch (e) {
       debugPrint('❌ StripeService Error: $e');
