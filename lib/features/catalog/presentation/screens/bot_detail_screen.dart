@@ -23,28 +23,24 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen>
     with WidgetsBindingObserver {
   bool _isProActive = false;
   bool _isLoadingSub = true;
-  bool _isWaitingForPayment = false; // Флаг: ушел ли юзер на оплату
+  bool _isWaitingForPayment = false;
 
   @override
   void initState() {
     super.initState();
-    // Регистрируем наблюдателя за жизненным циклом
     WidgetsBinding.instance.addObserver(this);
     _checkProSubscription();
   }
 
   @override
   void dispose() {
-    // Обязательно снимаем наблюдателя
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  // МЕТОД: Ловим возврат пользователя из внешней вкладки Stripe
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _isWaitingForPayment) {
-      debugPrint('✅ Приложение возобновлено (Resumed). Проверяем статус оплаты...');
       _verifySubscriptionAndNavigate();
     }
   }
@@ -53,12 +49,9 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen>
     final supabase = ref.read(supabaseClientProvider);
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) {
-      if (mounted) {
-        setState(() => _isLoadingSub = false);
-      }
+      if (mounted) setState(() => _isLoadingSub = false);
       return;
     }
-
     try {
       final response = await supabase
           .from('subscriptions')
@@ -66,7 +59,6 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen>
           .eq('user_id', userId)
           .eq('status', 'active')
           .inFilter('plan', ['monthly_100', 'monthly_200']);
-
       if (mounted) {
         setState(() {
           _isProActive = response.isNotEmpty;
@@ -74,21 +66,16 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen>
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() => _isLoadingSub = false);
-      }
+      if (mounted) setState(() => _isLoadingSub = false);
     }
   }
 
-  // МЕТОД: Проверка в БД и навигация после оплаты
   Future<void> _verifySubscriptionAndNavigate() async {
-    setState(() => _isWaitingForPayment = false); // Сбрасываем флаг
-
+    setState(() => _isWaitingForPayment = false);
     final supabase = ref.read(supabaseClientProvider);
     final userId = supabase.auth.currentUser?.id;
     if (userId == null || !mounted) return;
 
-    // Показываем диалог проверки
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -103,13 +90,13 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen>
             Text(
               "Проверка платежа...",
               style: TextStyle(
-                  color: AppColors.textPrimary, 
+                  color: AppColors.textPrimary,
                   fontWeight: FontWeight.bold,
                   fontSize: 18),
             ),
             SizedBox(height: 12),
             Text(
-              "Это займет пару секунд, не закрывайте приложение",
+              "Это займет пару секунд",
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
             ),
@@ -121,7 +108,6 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen>
     try {
       for (int i = 0; i < 15; i++) {
         await Future.delayed(const Duration(seconds: 2));
-
         final response = await supabase
             .from('subscriptions')
             .select()
@@ -130,8 +116,6 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen>
             .maybeSingle();
 
         if (response != null) {
-          debugPrint('💎 Подписка подтверждена!');
-
           final bots =
               await ref.read(botsByCategoryProvider(widget.category).future);
           final String currentBotId =
@@ -144,7 +128,7 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen>
           }, onConflict: 'user_id, bot_id');
 
           if (mounted) {
-            Navigator.of(context).pop(); 
+            Navigator.of(context).pop();
             final cat = widget.category;
             final botName = 'Dokki ${cat[0].toUpperCase()}${cat.substring(1)}';
             context.push('/bot-config/$currentBotId/$botName/$cat');
@@ -157,14 +141,14 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen>
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text(
-                  "Оплата еще обрабатывается банком. Проверьте через минуту.")),
+            content: Text(
+                "Платеж подтвержден, но активация задерживается. Подождите минуту."),
+            duration: Duration(seconds: 6),
+          ),
         );
       }
     } catch (e) {
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
+      if (mounted) Navigator.of(context).pop();
     }
   }
 
@@ -205,9 +189,9 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen>
           body: SingleChildScrollView(
             child: Column(
               children: [
-                // 1. ПОЛНЫЙ БЛОК ОПИСАНИЯ
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 12.0),
                   width: double.infinity,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,10 +217,9 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen>
                     ],
                   ),
                 ),
-
-                // 2. ПОЛНЫЙ БЛОК ФУНКЦИЙ
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
                   width: double.infinity,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -251,31 +234,27 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen>
                         ),
                       ),
                       const SizedBox(height: 8),
-                      ...bot.getLocalizedFeatures(currentLang).take(3).map((feature) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 4.0),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.check_circle,
-                                  color: AppColors.accent, size: 16),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  feature,
-                                  style: const TextStyle(fontSize: 13),
+                      ...bot
+                          .getLocalizedFeatures(currentLang)
+                          .take(3)
+                          .map((feature) => Padding(
+                                padding: const EdgeInsets.only(bottom: 4.0),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.check_circle,
+                                        color: AppColors.accent, size: 16),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(feature,
+                                          style: const TextStyle(fontSize: 13)),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
+                              )),
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 8),
-
-                // 3. КАРТОЧКА BASIC (6 ФУНКЦИЙ)
                 _PlanCard(
                   s: s,
                   botId: bot.id,
@@ -293,12 +272,11 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen>
                   onStartPayment: () =>
                       setState(() => _isWaitingForPayment = true),
                 ),
-
-                // 4. КАРТОЧКА PRO (ПОЛНЫЙ СПИСОК)
                 _isLoadingSub
                     ? const Padding(
                         padding: EdgeInsets.all(20),
-                        child: CircularProgressIndicator(color: AppColors.accent),
+                        child:
+                            CircularProgressIndicator(color: AppColors.accent),
                       )
                     : _PlanCard(
                         s: s,
@@ -328,7 +306,7 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen>
   }
 }
 
-class _PlanCard extends StatefulWidget {
+class _PlanCard extends ConsumerStatefulWidget {
   final AppStrings s;
   final String botId;
   final String title;
@@ -350,30 +328,30 @@ class _PlanCard extends StatefulWidget {
   });
 
   @override
-  State<_PlanCard> createState() => _PlanCardState();
+  ConsumerState<_PlanCard> createState() => _PlanCardState();
 }
 
-class _PlanCardState extends State<_PlanCard> {
+class _PlanCardState extends ConsumerState<_PlanCard> {
   bool _isLoading = false;
 
   Future<void> _handleCheckout() async {
     setState(() => _isLoading = true);
     try {
       widget.onStartPayment();
-
       await StripeService().createCheckoutSession(
         botId: widget.botId,
         plan: widget.planId,
+        currentLang: ref.read(languageProvider),
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(e.toString()), backgroundColor: AppColors.error));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(e.toString()), backgroundColor: AppColors.error),
+        );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

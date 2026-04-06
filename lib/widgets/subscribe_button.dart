@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/stripe_service.dart';
+import '../core/localization/language_provider.dart';
 
 final checkoutLoadingProvider = StateProvider<bool>((ref) => false);
 
@@ -21,7 +22,7 @@ class SubscribeButton extends ConsumerWidget {
       height: 54,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF6366F1), // Dokki Primary Color
+          backgroundColor: const Color(0xFF6366F1),
           foregroundColor: Colors.white,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -32,10 +33,10 @@ class SubscribeButton extends ConsumerWidget {
             : () async {
                 ref.read(checkoutLoadingProvider.notifier).state = true;
                 try {
-                  // Исправлено: добавлены обязательные параметры botId и plan
                   await StripeService().createCheckoutSession(
                     botId: botId,
                     plan: 'monthly_50',
+                    currentLang: ref.read(languageProvider),
                   );
                 } catch (e) {
                   if (context.mounted) {

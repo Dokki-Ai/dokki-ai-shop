@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Оплата успешна | Dokki</title>
+    <title>Payment Status | Dokki</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body {
             background-color: #121212;
             color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: -apple-system, system-ui, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -16,39 +16,47 @@
             height: 100vh;
             margin: 0;
             text-align: center;
-            padding: 24px;
-            box-sizing: border-box;
         }
-        .icon { font-size: 64px; color: #4CAF50; margin-bottom: 24px; }
-        h1 { font-size: 24px; margin-bottom: 16px; }
-        p { color: #888; font-size: 15px; line-height: 1.5; }
-        .hint { margin-top: 32px; font-size: 13px; color: #555; }
+        .icon { font-size: 72px; color: #4CAF50; margin-bottom: 20px; }
+        h1 { font-size: 24px; font-weight: 700; margin-bottom: 12px; }
+        p { color: #b0b0b0; font-size: 16px; margin-bottom: 32px; max-width: 320px; line-height: 1.5; padding: 0 20px; }
+        /* RTL support for Arabic */
+        .rtl { direction: rtl; }
     </style>
 </head>
 <body>
     <div class="icon">✓</div>
-    <h1 id="title"></h1>
-    <p id="subtitle"></p>
-    <p class="hint" id="hint"></p>
+    <h1 id="title">Оплата принята!</h1>
+    <p id="desc">Вкладку можно закрыть. Просто вернитесь в приложение Dokki, чтобы завершить настройку бота.</p>
 
     <script>
-        const lang = navigator.language || navigator.userLanguage || 'en';
-        const isRu = lang.startsWith('ru');
-        const isAr = lang.startsWith('ar');
+        const translations = {
+            ru: {
+                title: "Оплата принята!",
+                desc: "Вкладку можно закрыть. Просто вернитесь в приложение Dokki, чтобы завершить настройку бота."
+            },
+            en: {
+                title: "Payment accepted!",
+                desc: "You can close this tab now. Just return to the Dokki app to complete your bot setup."
+            },
+            ar: {
+                title: "تم قبول الدفع!",
+                desc: "يمكنك إغلاق هذا التبويب الآن. ما عليك سوى العودة إلى تطبيق Dokki لإكمال إعداد البوت الخاص بك."
+            }
+        };
 
-        if (isRu) {
-            document.getElementById('title').textContent = 'Оплата принята!';
-            document.getElementById('subtitle').textContent = 'Подписка активирована. Вернитесь в приложение Dokki чтобы завершить настройку бота.';
-            document.getElementById('hint').textContent = 'Нажмите ← назад или закройте вкладку';
-        } else if (isAr) {
-            document.getElementById('title').textContent = 'تم الدفع بنجاح!';
-            document.getElementById('subtitle').textContent = 'تم تفعيل الاشتراك. عد إلى تطبيق Dokki لإكمال إعداد البوت.';
-            document.getElementById('hint').textContent = 'اضغط ← رجوع أو أغلق التبويب';
-            document.body.style.direction = 'rtl';
-        } else {
-            document.getElementById('title').textContent = 'Payment accepted!';
-            document.getElementById('subtitle').textContent = 'Subscription activated. Return to the Dokki app to finish setting up your bot.';
-            document.getElementById('hint').textContent = 'Press ← back or close this tab';
+        // Извлекаем lang из URL (?lang=en)
+        const urlParams = new URLSearchParams(window.location.search);
+        const lang = urlParams.get('lang') || 'ru';
+        const t = translations[lang] || translations.ru;
+
+        // Применяем переводы
+        document.getElementById('title').innerText = t.title;
+        document.getElementById('desc').innerText = t.desc;
+
+        // Устанавливаем RTL для арабского
+        if (lang === 'ar') {
+            document.body.classList.add('rtl');
         }
     </script>
 </body>
