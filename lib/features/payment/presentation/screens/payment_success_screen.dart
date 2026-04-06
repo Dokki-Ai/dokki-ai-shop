@@ -37,17 +37,24 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
 
       debugPrint('⏳ PaymentSuccess: Начинаем процесс активации...');
 
-      // 1. ПРИНУДИТЕЛЬНОЕ ОБНОВЛЕНИЕ СЕССИИ
-      // Это критично, чтобы забрать свежий ECC-токен после редиректа
-      final authResponse = await supabase.auth.refreshSession();
-      final user = authResponse.user;
+      // 1. ВОССТАНОВЛЕНИЕ СЕССИИ (Fix для Web)
+      // Вместо refreshSession() используем получение сессии из URL,
+      // так как после редиректа из Stripe в браузере может потребоваться инициализация.
+      var user = supabase.auth.currentUser;
+
+      if (user == null) {
+        debugPrint('🔄 Сессия не найдена, пробуем восстановить из URL...');
+        await supabase.auth.getSessionFromUrl(Uri.base);
+        user = supabase.auth.currentUser;
+      }
 
       if (user == null) {
         throw 'Пользователь не авторизован. Попробуйте войти заново.';
       }
 
+      debugPrint('👤 Пользователь определен: ${user.id}');
+
       // 2. "БУДИЛЬНИК" ДЛЯ BACKEND (DigitalOcean)
-      // Пингуем бэкенд, чтобы он проснулся и быстрее обработал вебхук от Stripe
       try {
         await http
             .get(Uri.parse(_backendUrl))
@@ -59,13 +66,12 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
 
       // 3. POLLING (Цикл опроса базы данных)
       int attempts = 0;
-      const maxAttempts = 15; // Ждем до 30 секунд (15 попыток по 2 сек)
+      const maxAttempts = 15; // Ждем до 30 секунд
 
       while (attempts < maxAttempts) {
         debugPrint(
             '🔄 Проверка подписки в Supabase, попытка #${attempts + 1}...');
 
-        // Проверяем, появилась ли активная подписка для этого пользователя
         final response = await supabase
             .from('subscriptions')
             .select()
@@ -77,8 +83,6 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
           debugPrint('💎 Подписка подтверждена вебхуком!');
 
           // 4. АКТИВАЦИЯ БИЗНЕСА
-          // Теперь, когда подписка в базе, мы сами (со стороны клиента)
-          // подтверждаем привязку конкретного бота.
           await supabase.from('businesses').upsert({
             'user_id': user.id,
             'bot_id': widget.botId,
@@ -90,15 +94,13 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
               _isLoading = false;
             });
           }
-          return; // Выходим из функции, всё успешно!
+          return;
         }
 
-        // Если не нашли — ждем 2 секунды и пробуем снова
         attempts++;
         await Future.delayed(const Duration(seconds: 2));
       }
 
-      // Если после всех попыток подписка не найдена
       throw 'Платеж обработан, но активация задерживается. Обновите страницу через минуту.';
     } catch (e) {
       debugPrint('❌ Ошибка в PaymentSuccessScreen: $e');
@@ -155,7 +157,6 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
                       style: TextStyle(color: Colors.white)),
                 ),
               ] else ...[
-                // УСПЕШНОЕ СОСТОЯНИЕ
                 const Icon(Icons.check_circle_outline,
                     size: 100, color: Colors.green),
                 const SizedBox(height: 32),
@@ -175,7 +176,6 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     onPressed: () {
-                      // ДИНАМИЧЕСКОЕ ИМЯ БОТА (Твой фикс)
                       final cat = widget.botId.split('_').first;
                       final botName =
                           'Dokki ${cat[0].toUpperCase()}${cat.substring(1)}';
