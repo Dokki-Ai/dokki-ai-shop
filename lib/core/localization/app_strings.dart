@@ -57,7 +57,7 @@ class AppStrings {
       },
       'Передача менеджеру': {
         AppLanguage.en: 'Transfer to Manager',
-        AppLanguage.ar: 'تحويل للمدير'
+        AppLanguage.ar: 'تحويل للمдижер'
       },
     };
     return map[label]?[currentLanguage] ?? label;
@@ -139,7 +139,7 @@ class AppStrings {
   String get authOr =>
       _map({AppLanguage.ru: 'или', AppLanguage.en: 'or', AppLanguage.ar: 'أو'});
 
-  // --- Каталог (Задача 63) ---
+  // --- Каталог ---
   String get catDetails => _map({
         AppLanguage.ru: 'Подробнее',
         AppLanguage.en: 'Details',
@@ -166,16 +166,43 @@ class AppStrings {
         AppLanguage.ar: 'اتصال'
       });
 
+  // --- Тарифы (Добавлено) ---
+  String get planProActive => _map({
+        AppLanguage.ru: 'Уже активен — личная база данных',
+        AppLanguage.en: 'Already active — private database',
+        AppLanguage.ar: 'مفعل بالفعل — قاعدة بيانات خاصة',
+      });
+  String get planFeatureBot => _map({
+        AppLanguage.ru: 'AI бот в Telegram',
+        AppLanguage.en: 'AI bot in Telegram',
+        AppLanguage.ar: 'بوت ذكاء اصطناعي في تيليغرام',
+      });
+  String get planFeatureSharedDb => _map({
+        AppLanguage.ru: 'Общая база данных',
+        AppLanguage.en: 'Shared database',
+        AppLanguage.ar: 'قاعدة بيانات مشتركة',
+      });
+  String get planFeaturePrivateDb => _map({
+        AppLanguage.ru: 'Личная база данных',
+        AppLanguage.en: 'Private database',
+        AppLanguage.ar: 'قاعدة بيانات خاصة',
+      });
+  String get planFeaturePriceList => _map({
+        AppLanguage.ru: 'Прайс и инструкции',
+        AppLanguage.en: 'Price list and instructions',
+        AppLanguage.ar: 'قائمة الأسعار والتعليمات',
+      });
+
   // --- Оплата ---
   String get paySubscription => _map({
         AppLanguage.ru: 'Подписка',
         AppLanguage.en: 'Subscription',
-        AppLanguage.ar: 'اشتрак'
+        AppLanguage.ar: 'اشتراك'
       });
   String get payMonth => _map(
       {AppLanguage.ru: 'мес', AppLanguage.en: 'month', AppLanguage.ar: 'شهر'});
   String get payYear => _map(
-      {AppLanguage.ru: 'год', AppLanguage.en: 'year', AppLanguage.ar: 'سنة'});
+      {AppLanguage.ru: 'год', AppLanguage.en: 'year', AppLanguage.ar: 'сنة'});
   String get payAction => _map({
         AppLanguage.ru: 'ПОДКЛЮЧИТЬ ЗА',
         AppLanguage.en: 'CONNECT FOR',
@@ -284,7 +311,7 @@ class AppStrings {
   String get myBotsEmpty => _map({
         AppLanguage.ru: 'У вас пока нет подключённых ботов',
         AppLanguage.en: 'You have no connected bots yet',
-        AppLanguage.ar: 'ليس لديك بوتات متصلة بعد'
+        AppLanguage.ar: 'ليس لديك بوتات متصلة после'
       });
   String get myBotsGoCatalog => _map({
         AppLanguage.ru: 'Перейти в каталог',
@@ -336,7 +363,7 @@ class AppStrings {
   String get setVersion => _map({
         AppLanguage.ru: 'Версия',
         AppLanguage.en: 'Version',
-        AppLanguage.ar: 'الإصدار'
+        AppLanguage.ar: 'الإصдар'
       });
   String get setNotifSettings => _map({
         AppLanguage.ru: 'Настройки уведомлений',
@@ -467,7 +494,7 @@ class AppStrings {
   String get bmPromptSettings => _map({
         AppLanguage.ru: 'НАСТРОЙКИ ПРОМПТА',
         AppLanguage.en: 'PROMPT SETTINGS',
-        AppLanguage.ar: 'إعدادات الأوامر'
+        AppLanguage.ar: 'إعدادات الأوامр'
       });
   String get bmActivateGroup => _map({
         AppLanguage.ru: 'АКТИВИРОВАТЬ ГРУППУ',
@@ -477,7 +504,7 @@ class AppStrings {
   String get bmActive => _map({
         AppLanguage.ru: 'Бот активен',
         AppLanguage.en: 'Bot active',
-        AppLanguage.ar: 'البوت مفعل'
+        AppLanguage.ar: 'البот مفعل'
       });
   String get bmSetupRequired => _map({
         AppLanguage.ru: 'Требуется настройка',
@@ -487,7 +514,7 @@ class AppStrings {
   String get bmReady => _map({
         AppLanguage.ru: 'Бот готов к приему заказов',
         AppLanguage.en: 'Bot ready',
-        AppLanguage.ar: 'البوت جاهز'
+        AppLanguage.ar: 'البот جاهز'
       });
   String get bmBindGroup => _map({
         AppLanguage.ru: 'Привяжите Telegram группу',
