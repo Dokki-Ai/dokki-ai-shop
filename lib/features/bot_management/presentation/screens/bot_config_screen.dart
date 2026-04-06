@@ -84,6 +84,7 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'businessId': Supabase.instance.client.auth.currentUser?.id ?? '',
+              'botId': widget.botId,
               'botToken': _botTokenController.text.trim(),
               'openaiKey': _apiKeyController.text.trim(),
               'businessName': _businessNameController.text.trim(),
