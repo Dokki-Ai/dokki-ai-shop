@@ -1,7 +1,9 @@
+import 'dart:async'; // ДОБАВЛЕНО
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/supabase/supabase_client.dart';
 
@@ -22,55 +24,79 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
   bool _isLoading = true;
   String? _error;
 
-  // URL твоего бэкенда на DigitalOcean (для "прогревания" сервиса)
+  // URL бэкенда на DigitalOcean
   final String _backendUrl = 'https://stingray-app-ewoo6.ondigitalocean.app';
 
   @override
   void initState() {
     super.initState();
-    _handleSuccess();
+    // ИСПРАВЛЕНО: Новый метод ожидания сессии
+    _waitForSessionThenHandle();
   }
 
-  Future<void> _handleSuccess() async {
+  // ДОБАВЛЕНО: Метод ожидания инициализации Supabase
+  Future<void> _waitForSessionThenHandle() async {
+    final supabase = ref.read(supabaseClientProvider);
+
+    // 1. Проверяем, есть ли пользователь уже сейчас
+    final currentUser = supabase.auth.currentUser;
+    if (currentUser != null) {
+      debugPrint('✅ Сессия уже активна: ${currentUser.id}');
+      _handleSuccess(currentUser);
+      return;
+    }
+
+    try {
+      debugPrint('🔄 Ожидание события авторизации от Supabase...');
+
+      // 2. Слушаем поток событий до первого подходящего случая
+      final authState = await supabase.auth.onAuthStateChange
+          .firstWhere((data) =>
+              data.event == AuthChangeEvent.initialSession ||
+              data.event == AuthChangeEvent.signedIn ||
+              data.event == AuthChangeEvent.tokenRefreshed)
+          .timeout(const Duration(seconds: 10));
+
+      final user = authState.session?.user;
+      if (user != null) {
+        debugPrint('✅ Сессия получена через событие: ${user.id}');
+        _handleSuccess(user);
+      } else {
+        debugPrint('⚠️ Пользователь не найден после события');
+        if (mounted) context.go('/auth');
+      }
+    } on TimeoutException {
+      debugPrint('❌ Таймаут ожидания сессии (10 сек)');
+      if (mounted) context.go('/auth');
+    } catch (e) {
+      debugPrint('❌ Ошибка при ожидании сессии: $e');
+      if (mounted) context.go('/auth');
+    }
+  }
+
+  // ИСПРАВЛЕНО: Сигнатура метода теперь принимает User
+  Future<void> _handleSuccess(User user) async {
     try {
       final supabase = ref.read(supabaseClientProvider);
 
-      debugPrint('⏳ PaymentSuccess: Начинаем процесс активации...');
+      debugPrint('🚀 Начинаем активацию для пользователя: ${user.id}');
 
-      // 1. ВОССТАНОВЛЕНИЕ СЕССИИ (Fix для Web)
-      // Вместо refreshSession() используем получение сессии из URL,
-      // так как после редиректа из Stripe в браузере может потребоваться инициализация.
-      var user = supabase.auth.currentUser;
-
-      if (user == null) {
-        debugPrint('🔄 Сессия не найдена, пробуем восстановить из URL...');
-        await supabase.auth.getSessionFromUrl(Uri.base);
-        user = supabase.auth.currentUser;
-      }
-
-      if (user == null) {
-        throw 'Пользователь не авторизован. Попробуйте войти заново.';
-      }
-
-      debugPrint('👤 Пользователь определен: ${user.id}');
-
-      // 2. "БУДИЛЬНИК" ДЛЯ BACKEND (DigitalOcean)
+      // 1. "БУДИЛЬНИК" ДЛЯ BACKEND (DigitalOcean)
       try {
         await http
             .get(Uri.parse(_backendUrl))
             .timeout(const Duration(seconds: 5));
-        debugPrint('🚀 Бэкенд на DigitalOcean пинганут успешно');
+        debugPrint('✅ Бэкенд пинганут');
       } catch (e) {
-        debugPrint('⚠️ Бэкенд еще просыпается: $e');
+        debugPrint('⚠️ Бэкенд не ответил (просыпается)');
       }
 
-      // 3. POLLING (Цикл опроса базы данных)
+      // 2. POLLING (Цикл опроса базы данных)
       int attempts = 0;
-      const maxAttempts = 15; // Ждем до 30 секунд
+      const maxAttempts = 15;
 
       while (attempts < maxAttempts) {
-        debugPrint(
-            '🔄 Проверка подписки в Supabase, попытка #${attempts + 1}...');
+        debugPrint('🔄 Проверка подписки, попытка #${attempts + 1}...');
 
         final response = await supabase
             .from('subscriptions')
@@ -80,9 +106,9 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
             .maybeSingle();
 
         if (response != null) {
-          debugPrint('💎 Подписка подтверждена вебхуком!');
+          debugPrint('💎 Подписка подтверждена!');
 
-          // 4. АКТИВАЦИЯ БИЗНЕСА
+          // 3. АКТИВАЦИЯ БИЗНЕСА
           await supabase.from('businesses').upsert({
             'user_id': user.id,
             'bot_id': widget.botId,
@@ -101,9 +127,9 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
         await Future.delayed(const Duration(seconds: 2));
       }
 
-      throw 'Платеж обработан, но активация задерживается. Обновите страницу через минуту.';
+      throw 'Платеж обработан, но активация задерживается. Обновите страницу позже.';
     } catch (e) {
-      debugPrint('❌ Ошибка в PaymentSuccessScreen: $e');
+      debugPrint('❌ Ошибка активации: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -127,7 +153,7 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
                 const CircularProgressIndicator(color: AppColors.accent),
                 const SizedBox(height: 32),
                 const Text(
-                  'Проверяем ваш платеж...',
+                  'Активируем вашу подписку...',
                   style: TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 18,
@@ -135,7 +161,7 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'Это обычно занимает несколько секунд',
+                  'Это займет всего несколько секунд',
                   style: TextStyle(color: AppColors.textSecondary),
                 ),
               ] else if (_error != null) ...[

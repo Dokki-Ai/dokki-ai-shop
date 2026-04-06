@@ -258,6 +258,8 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
     setState(() => _isLoading = true);
 
     try {
+      // Прямой вызов создания сессии.
+      // launchUrl с параметром _self выполнит переход в текущей вкладке.
       await StripeService().createCheckoutSession(
         botId: widget.botId,
         plan: widget.planId,
@@ -290,7 +292,7 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min, // Позволяет колонке сжиматься
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -316,8 +318,6 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
           const SizedBox(height: 8),
           const Divider(height: 1, thickness: 1, color: AppColors.border),
           const SizedBox(height: 12),
-
-          // ИСПРАВЛЕНО: Заменили Expanded + ListView на Column
           Column(
             children: widget.features
                 .map((feature) => Padding(
@@ -339,7 +339,6 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
                     ))
                 .toList(),
           ),
-
           const SizedBox(height: 12),
           if (widget.isProActive)
             Center(
