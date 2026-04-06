@@ -1,6 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.177.1/http/server.ts"
 import Stripe from 'https://esm.sh/stripe@14.21.0?target=deno'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
   apiVersion: '2023-10-16',
@@ -19,29 +18,27 @@ serve(async (req: Request) => {
 
   try {
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      throw new Error('Missing Authorization header')
+    if (!authHeader) throw new Error('Missing Authorization header')
+
+    // Верификация через Supabase Auth API
+    const userRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/auth/v1/user`, {
+      headers: {
+        'Authorization': authHeader,
+        'apikey': Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      }
+    })
+
+    const userData = await userRes.json()
+    if (!userRes.ok || !userData.id) {
+      console.error('Auth failed:', userData)
+      throw new Error('401: Unauthorized')
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    const token = authHeader.replace('Bearer ', '')
-
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
-    
-    if (authError || !user) {
-      console.error('Auth verification failed:', authError?.message)
-      throw new Error('401: Unauthorized - Не удалось верифицировать токен пользователя')
-    }
+    const userId = userData.id
+    const userEmail = userData.email
 
     const { plan, successUrl, cancelUrl } = await req.json()
-    
-    if (!plan) {
-      throw new Error('Plan обязателен')
-    }
+    if (!plan) throw new Error('Plan обязателен')
 
     const priceMap: Record<string, string> = {
       'monthly_50': Deno.env.get('STRIPE_PRICE_BASIC') ?? '',
@@ -49,27 +46,22 @@ serve(async (req: Request) => {
     }
 
     const priceId = priceMap[plan]
-    if (!priceId) {
-      throw new Error(`Неизвестный план: ${plan}`)
-    }
+    if (!priceId) throw new Error(`Неизвестный план: ${plan}`)
 
-    console.log(`🛠 Создание сессии для пользователя: ${user.id} (${user.email}), план: ${plan}`)
+    console.log(`🛠 Создание сессии для ${userId} (${userEmail}), план: ${plan}`)
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
-      client_reference_id: user.id,
-      customer_email: user.email,
+      client_reference_id: userId,
+      customer_email: userEmail,
       success_url: successUrl,
       cancel_url: cancelUrl,
-      metadata: {
-        user_id: user.id,
-        plan: plan,
-      },
+      metadata: { user_id: userId, plan: plan },
     })
 
-    console.log(`✅ Сессия успешно создана: ${session.id}`)
+    console.log(`✅ Сессия создана: ${session.id}`)
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -77,7 +69,7 @@ serve(async (req: Request) => {
     })
 
   } catch (error: any) {
-    console.error('❌ Ошибка в Edge Function:', error.message)
+    console.error('❌ Ошибка:', error.message)
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
