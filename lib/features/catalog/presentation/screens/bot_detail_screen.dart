@@ -68,22 +68,19 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
       ),
       error: (err, stack) => Scaffold(
         body: Center(
-          child: Text('Ошибка: $err', // Исправлено: прямая строка
+          child: Text('Ошибка: $err',
               style: const TextStyle(color: AppColors.error)),
         ),
       ),
       data: (List<Bot> bots) {
         if (bots.isEmpty) {
           return const Scaffold(
-            body: Center(
-                child: Text(
-                    'Информация временно недоступна')), // Исправлено: прямая строка
+            body: Center(child: Text('Информация временно недоступна')),
           );
         }
 
         final Bot bot = bots.first;
         final String fullDescription = bot.getLocalizedDescription(currentLang);
-        final List<String> features = bot.getLocalizedFeatures(currentLang);
 
         return Scaffold(
           backgroundColor: AppColors.background,
@@ -100,14 +97,14 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
             ),
             centerTitle: true,
           ),
-          // ВОЗВРАЩЕНО: Column для фиксации блоков на одном экране
           body: Column(
             children: [
-              // 1. Описание (Expanded flex: 1)
+              // 1. Описание (Flex: 1)
               Expanded(
                 flex: 1,
                 child: Container(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
                   width: double.infinity,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,19 +113,19 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
                         s.catDescription.toUpperCase(),
                         style: const TextStyle(
                           color: AppColors.accent,
-                          fontSize: 13,
+                          fontSize: 12,
                           letterSpacing: 1.1,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 4),
                       Expanded(
                         child: Text(
                           fullDescription,
                           style: const TextStyle(
                             color: AppColors.textSecondary,
                             fontSize: 14,
-                            height: 1.4,
+                            height: 1.3,
                           ),
                           overflow: TextOverflow.fade,
                         ),
@@ -138,11 +135,12 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
                 ),
               ),
 
-              // 2. Функции (Expanded flex: 1)
+              // 2. Функции из БД (Flex: 1)
               Expanded(
                 flex: 1,
                 child: Container(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
                   width: double.infinity,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,29 +149,30 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
                         s.catFunctions.toUpperCase(),
                         style: const TextStyle(
                           color: AppColors.accent,
-                          fontSize: 13,
+                          fontSize: 12,
                           letterSpacing: 1.1,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      ...features.take(3).map((feature) {
+                      const SizedBox(height: 8),
+                      // ИСПРАВЛЕНО: Теперь берем реальные фичи бота из базы
+                      ...bot
+                          .getLocalizedFeatures(currentLang)
+                          .take(3)
+                          .map((feature) {
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
+                          padding: const EdgeInsets.only(bottom: 4.0),
                           child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Icon(Icons.check_circle,
-                                  color: AppColors.accent, size: 20),
-                              const SizedBox(width: 12),
+                                  color: AppColors.accent, size: 16),
+                              const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                   feature,
-                                  style: const TextStyle(
-                                    color: AppColors.textPrimary,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                                  style: const TextStyle(fontSize: 13),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -185,9 +184,9 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
                 ),
               ),
 
-              // 3. Basic карточка (Expanded flex: 1)
+              // 3. Basic карточка (Flex: 3)
               Expanded(
-                flex: 1,
+                flex: 3,
                 child: _PlanCard(
                   s: s,
                   botId: bot.id,
@@ -196,15 +195,18 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
                   planId: 'monthly_50',
                   features: [
                     s.planFeatureBot,
-                    s.planFeatureSharedDb,
+                    s.planFeatureUnlimitedMessages,
                     s.planFeaturePriceList,
+                    s.planFeatureInstructions,
+                    s.planFeatureChatHistory,
+                    s.planFeatureTelegram,
                   ],
                 ),
               ),
 
-              // 4. Pro карточка (Expanded flex: 1)
+              // 4. Pro карточка (Flex: 3)
               Expanded(
-                flex: 1,
+                flex: 3,
                 child: _isLoadingSub
                     ? const Center(
                         child:
@@ -216,9 +218,10 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
                         price: '\$100/${s.payMonth}',
                         planId: 'monthly_100',
                         features: [
-                          s.planFeatureBot,
                           s.planFeaturePrivateDb,
-                          s.planFeaturePriceList,
+                          s.planFeatureUnlimitedPrice,
+                          s.planFeatureFullHistory,
+                          s.planFeatureSocialMedia,
                         ],
                         isProActive: _isProActive,
                       ),
@@ -290,8 +293,8 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
-      padding: const EdgeInsets.all(12.0),
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+      padding: const EdgeInsets.all(14.0),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16.0),
@@ -324,35 +327,41 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
           const SizedBox(height: 8),
           const Divider(height: 1, thickness: 1, color: AppColors.border),
           const SizedBox(height: 8),
-          ...widget.features.map((feature) => Padding(
-                padding: const EdgeInsets.only(bottom: 4.0),
-                child: Row(
-                  children: [
-                    const Icon(Icons.check_circle,
-                        size: 16, color: AppColors.accent),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        feature,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textPrimary,
+          Expanded(
+            child: ListView(
+              physics: const NeverScrollableScrollPhysics(),
+              children: widget.features
+                  .map((feature) => Padding(
+                        padding: const EdgeInsets.only(bottom: 6.0),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.check_circle,
+                                size: 14, color: AppColors.accent),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                feature,
+                                style: const TextStyle(
+                                    fontSize: 13, color: AppColors.textPrimary),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              )),
-          const SizedBox(height: 4), // Фиксированный отступ
+                      ))
+                  .toList(),
+            ),
+          ),
+          const SizedBox(height: 8),
           if (widget.isProActive)
             Center(
               child: Text(
-                widget.s.planProActive,
+                widget.s.planProActiveText,
                 style: const TextStyle(
                   color: AppColors.textSecondary,
-                  fontSize: 13,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -373,8 +382,8 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
                 onPressed: _isLoading ? null : _handleCheckout,
                 child: _isLoading
                     ? const SizedBox(
-                        width: 20,
-                        height: 20,
+                        width: 18,
+                        height: 18,
                         child: CircularProgressIndicator(
                           color: Colors.white,
                           strokeWidth: 2,
@@ -383,7 +392,7 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
                     : Text(
                         widget.s.botConnect.toUpperCase(),
                         style: const TextStyle(
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

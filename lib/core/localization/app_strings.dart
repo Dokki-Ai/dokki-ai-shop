@@ -57,7 +57,7 @@ class AppStrings {
       },
       'Передача менеджеру': {
         AppLanguage.en: 'Transfer to Manager',
-        AppLanguage.ar: 'تحويل للمдижер'
+        AppLanguage.ar: 'تحويل للمدير'
       },
     };
     return map[label]?[currentLanguage] ?? label;
@@ -72,7 +72,7 @@ class AppStrings {
   String get navMyBots => _map({
         AppLanguage.ru: 'Мои боты',
         AppLanguage.en: 'My Bots',
-        AppLanguage.ar: 'بوتاتي'
+        AppLanguage.ar: 'بوتاتی'
       });
   String get navSettings => _map({
         AppLanguage.ru: 'Настройки',
@@ -166,31 +166,71 @@ class AppStrings {
         AppLanguage.ar: 'اتصال'
       });
 
-  // --- Тарифы (Добавлено) ---
-  String get planProActive => _map({
-        AppLanguage.ru: 'Уже активен — личная база данных',
-        AppLanguage.en: 'Already active — private database',
-        AppLanguage.ar: 'مفعل بالفعل — قاعدة بيانات خاصة',
-      });
+  // --- Тарифы (ФИНАЛЬНЫЕ) ---
   String get planFeatureBot => _map({
-        AppLanguage.ru: 'AI бот в Telegram',
-        AppLanguage.en: 'AI bot in Telegram',
-        AppLanguage.ar: 'بوت ذكاء اصطناعي في تيليغرام',
+        AppLanguage.ru: 'AI бот в Telegram 24/7',
+        AppLanguage.en: 'AI bot in Telegram 24/7',
+        AppLanguage.ar: 'بوت ذكاء اصطناعي في تيليغرام 24/7',
       });
-  String get planFeatureSharedDb => _map({
-        AppLanguage.ru: 'Общая база данных',
-        AppLanguage.en: 'Shared database',
-        AppLanguage.ar: 'قاعدة بيانات مشتركة',
+
+  String get planFeatureUnlimitedMessages => _map({
+        AppLanguage.ru: 'Безлимитные сообщения',
+        AppLanguage.en: 'Unlimited messages',
+        AppLanguage.ar: 'رسائل غير محدودة',
       });
+
+  String get planFeaturePriceList => _map({
+        AppLanguage.ru: 'До 5,000 позиций в прайсе',
+        AppLanguage.en: 'Up to 5,000 price list items',
+        AppLanguage.ar: 'حتى 5000 عنصر في قائمة الأسعار',
+      });
+
+  String get planFeatureInstructions => _map({
+        AppLanguage.ru: 'Инструкции до 10,000 символов',
+        AppLanguage.en: 'Instructions up to 10,000 characters',
+        AppLanguage.ar: 'تعليمات تصل إلى 10,000 حرف',
+      });
+
+  String get planFeatureChatHistory => _map({
+        AppLanguage.ru: 'Управление историей переписки',
+        AppLanguage.en: 'Chat history management',
+        AppLanguage.ar: 'إدارة سجل المحادثات',
+      });
+
+  String get planFeatureTelegram => _map({
+        AppLanguage.ru: 'Подключение через Telegram',
+        AppLanguage.en: 'Connect via Telegram',
+        AppLanguage.ar: 'الاتصال عبر تيليغرام',
+      });
+
   String get planFeaturePrivateDb => _map({
         AppLanguage.ru: 'Личная база данных',
         AppLanguage.en: 'Private database',
         AppLanguage.ar: 'قاعدة بيانات خاصة',
       });
-  String get planFeaturePriceList => _map({
-        AppLanguage.ru: 'Прайс и инструкции',
-        AppLanguage.en: 'Price list and instructions',
-        AppLanguage.ar: 'قائمة الأسعار والتعليمات',
+
+  String get planFeatureUnlimitedPrice => _map({
+        AppLanguage.ru: 'Неограниченный прайс',
+        AppLanguage.en: 'Unlimited price list',
+        AppLanguage.ar: 'قائمة أسعار غير محدودة',
+      });
+
+  String get planFeatureFullHistory => _map({
+        AppLanguage.ru: 'Полная история переписки',
+        AppLanguage.en: 'Full chat history',
+        AppLanguage.ar: 'سجل محادثات كامل',
+      });
+
+  String get planFeatureSocialMedia => _map({
+        AppLanguage.ru: 'WhatsApp или Instagram',
+        AppLanguage.en: 'WhatsApp or Instagram',
+        AppLanguage.ar: 'واتساب أو إنستغرام',
+      });
+
+  String get planProActiveText => _map({
+        AppLanguage.ru: 'Уже активен — добавить бота за \$50/мес',
+        AppLanguage.en: 'Already active — add bot for \$50/month',
+        AppLanguage.ar: 'مفعل بالفعل — أضف بوتاً مقابل 50 دولار/شهر',
       });
 
   // --- Оплата ---
@@ -202,12 +242,15 @@ class AppStrings {
   String get payMonth => _map(
       {AppLanguage.ru: 'мес', AppLanguage.en: 'month', AppLanguage.ar: 'شهر'});
   String get payYear => _map(
-      {AppLanguage.ru: 'год', AppLanguage.en: 'year', AppLanguage.ar: 'сنة'});
+      {AppLanguage.ru: 'год', AppLanguage.en: 'year', AppLanguage.ar: 'سنة'});
+
+  // ВОССТАНОВЛЕНО: payAction
   String get payAction => _map({
         AppLanguage.ru: 'ПОДКЛЮЧИТЬ ЗА',
         AppLanguage.en: 'CONNECT FOR',
         AppLanguage.ar: 'اتصال مقابل'
       });
+
   String get paySuccessTitle => _map({
         AppLanguage.ru: 'Оплата успешна',
         AppLanguage.en: 'Payment successful',
@@ -311,7 +354,7 @@ class AppStrings {
   String get myBotsEmpty => _map({
         AppLanguage.ru: 'У вас пока нет подключённых ботов',
         AppLanguage.en: 'You have no connected bots yet',
-        AppLanguage.ar: 'ليس لديك بوتات متصلة после'
+        AppLanguage.ar: 'ليس لديك بوتات متصلة بعد'
       });
   String get myBotsGoCatalog => _map({
         AppLanguage.ru: 'Перейти в каталог',
@@ -494,7 +537,7 @@ class AppStrings {
   String get bmPromptSettings => _map({
         AppLanguage.ru: 'НАСТРОЙКИ ПРОМПТА',
         AppLanguage.en: 'PROMPT SETTINGS',
-        AppLanguage.ar: 'إعدادات الأوامр'
+        AppLanguage.ar: 'إعدادات الأوامر'
       });
   String get bmActivateGroup => _map({
         AppLanguage.ru: 'АКТИВИРОВАТЬ ГРУППУ',
@@ -504,7 +547,7 @@ class AppStrings {
   String get bmActive => _map({
         AppLanguage.ru: 'Бот активен',
         AppLanguage.en: 'Bot active',
-        AppLanguage.ar: 'البот مفعل'
+        AppLanguage.ar: 'البوت مفعل'
       });
   String get bmSetupRequired => _map({
         AppLanguage.ru: 'Требуется настройка',
@@ -514,7 +557,7 @@ class AppStrings {
   String get bmReady => _map({
         AppLanguage.ru: 'Бот готов к приему заказов',
         AppLanguage.en: 'Bot ready',
-        AppLanguage.ar: 'البот جاهز'
+        AppLanguage.ar: 'البوت جاهз'
       });
   String get bmBindGroup => _map({
         AppLanguage.ru: 'Привяжите Telegram группу',
