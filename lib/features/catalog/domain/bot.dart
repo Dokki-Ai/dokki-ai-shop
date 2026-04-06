@@ -5,6 +5,10 @@ class Bot {
   final String name;
   final String description;
   final String shortDescription;
+  final String shortDescriptionRu;
+  final String shortDescriptionEn;
+  final String shortDescriptionAr;
+
   final String _categoryKey;
   final String tier;
   final String? imageUrl;
@@ -23,6 +27,9 @@ class Bot {
     required this.name,
     required this.description,
     required this.shortDescription,
+    this.shortDescriptionRu = '',
+    this.shortDescriptionEn = '',
+    this.shortDescriptionAr = '',
     required String category,
     required this.tier,
     this.imageUrl,
@@ -48,6 +55,9 @@ class Bot {
       name: json['name'] as String,
       description: json['description'] as String? ?? '',
       shortDescription: json['short_description'] as String? ?? '',
+      shortDescriptionRu: json['short_description_ru'] as String? ?? '',
+      shortDescriptionEn: json['short_description_en'] as String? ?? '',
+      shortDescriptionAr: json['short_description_ar'] as String? ?? '',
       category: rawCategory,
       tier: json['tier'] as String? ?? 'basic',
       imageUrl: json['image_url'] as String?,
@@ -61,6 +71,21 @@ class Bot {
       priceMonthly: (json['price_monthly'] as num?)?.toDouble(),
       priceYearly: (json['price_yearly'] as num?)?.toDouble(),
     );
+  }
+
+  String getLocalizedShortDescription(AppLanguage language) {
+    switch (language) {
+      case AppLanguage.ru:
+        return shortDescriptionRu.isNotEmpty
+            ? shortDescriptionRu
+            : shortDescriptionEn;
+      case AppLanguage.ar:
+        return shortDescriptionAr.isNotEmpty
+            ? shortDescriptionAr
+            : shortDescriptionEn;
+      case AppLanguage.en:
+        return shortDescriptionEn;
+    }
   }
 
   String getLocalizedDescription(AppLanguage language) {

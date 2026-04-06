@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/localization/language_provider.dart';
+import '../../../../core/localization/app_strings.dart';
 import '../../domain/bot.dart';
 
 class BotCard extends ConsumerWidget {
@@ -16,36 +17,30 @@ class BotCard extends ConsumerWidget {
     this.isGridMode = false,
   });
 
-  // --- ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ СБОРЩИК URL ---
+  // --- Сборщик URL (без изменений) ---
   String _getFinalUrl(String? rawPath) {
     if (rawPath == null || rawPath.isEmpty) {
       return '';
     }
 
-    // Если в БД уже лежит полная ссылка (https://...)
     if (rawPath.startsWith('http')) {
-      // Версия 1.0.4 для принудительного сброса кэша картинок
       final url =
           rawPath.contains('?') ? '$rawPath&v=1.0.4' : '$rawPath?v=1.0.4';
-      debugPrint('🚀 BOT IMAGE LOAD (direct): $url');
       return url;
     }
 
-    // Извлекаем только имя файла
     final fileName = rawPath.split('/').last;
-
     const baseUrl =
         'https://capqdnwuquxdeuqnohps.supabase.co/storage/v1/object/public/bot-images/';
 
-    final finalUrl = '$baseUrl$fileName?v=1.0.4';
-    debugPrint('🚀 BOT IMAGE LOAD (constructed): $finalUrl');
-
-    return finalUrl;
+    return '$baseUrl$fileName?v=1.0.4';
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(stringsProvider);
+    // 1. Получаем текущий язык
+    final AppLanguage currentLang = ref.watch(languageProvider);
 
     return GestureDetector(
       onTap: onConnect,
@@ -63,12 +58,15 @@ class BotCard extends ConsumerWidget {
             ),
           ],
         ),
-        child: isGridMode ? _buildVerticalLayout(s) : _buildHorizontalLayout(s),
+        child: isGridMode
+            ? _buildVerticalLayout(s, currentLang)
+            : _buildHorizontalLayout(s, currentLang),
       ),
     );
   }
 
-  Widget _buildVerticalLayout(dynamic s) {
+  // 2. Обновленные сигнатуры методов компоновки
+  Widget _buildVerticalLayout(dynamic s, AppLanguage currentLang) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -80,14 +78,14 @@ class BotCard extends ConsumerWidget {
           flex: 6,
           child: Padding(
             padding: const EdgeInsets.all(12.0),
-            child: _buildContent(s, isVertical: true),
+            child: _buildContent(s, currentLang, isVertical: true),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildHorizontalLayout(dynamic s) {
+  Widget _buildHorizontalLayout(dynamic s, AppLanguage currentLang) {
     return Row(
       children: [
         SizedBox(
@@ -98,7 +96,7 @@ class BotCard extends ConsumerWidget {
         Expanded(
           child: Padding(
             padding: const EdgeInsets.all(12.0),
-            child: _buildContent(s, isVertical: false),
+            child: _buildContent(s, currentLang, isVertical: false),
           ),
         ),
       ],
@@ -122,7 +120,6 @@ class BotCard extends ConsumerWidget {
         );
       },
       errorBuilder: (context, error, stackTrace) {
-        debugPrint('DEBUG Image.network Error on: $finalUrl');
         return Container(
           color: AppColors.background,
           child: const Column(
@@ -141,7 +138,9 @@ class BotCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(dynamic s, {required bool isVertical}) {
+  // 3. Обновленный метод контента с локализацией
+  Widget _buildContent(dynamic s, AppLanguage currentLang,
+      {required bool isVertical}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -158,7 +157,8 @@ class BotCard extends ConsumerWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          bot.shortDescription,
+          // ЗАМЕНЕНО: используем метод локализации из bot.dart
+          bot.getLocalizedShortDescription(currentLang),
           maxLines: isVertical ? 2 : 3,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
