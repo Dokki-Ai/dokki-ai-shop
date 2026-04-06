@@ -99,9 +99,9 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
           ),
           body: Column(
             children: [
-              // 1. Описание (Flex: 1)
+              // 1. Описание (ИСПРАВЛЕНО: Flex: 2)
               Expanded(
-                flex: 1,
+                flex: 2,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 16.0, vertical: 8.0),
@@ -135,9 +135,9 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
                 ),
               ),
 
-              // 2. Функции из БД (Flex: 1)
+              // 2. Функции из БД (ИСПРАВЛЕНО: Flex: 2)
               Expanded(
-                flex: 1,
+                flex: 2,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 16.0, vertical: 8.0),
@@ -155,7 +155,6 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      // ИСПРАВЛЕНО: Теперь берем реальные фичи бота из базы
                       ...bot
                           .getLocalizedFeatures(currentLang)
                           .take(3)
@@ -184,9 +183,9 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
                 ),
               ),
 
-              // 3. Basic карточка (Flex: 3)
+              // 3. Basic карточка (ИСПРАВЛЕНО: Flex: 4)
               Expanded(
-                flex: 3,
+                flex: 4,
                 child: _PlanCard(
                   s: s,
                   botId: bot.id,
@@ -204,9 +203,9 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
                 ),
               ),
 
-              // 4. Pro карточка (Flex: 3)
+              // 4. Pro карточка (ИСПРАВЛЕНО: Flex: 4)
               Expanded(
-                flex: 3,
+                flex: 4,
                 child: _isLoadingSub
                     ? const Center(
                         child:
@@ -329,6 +328,7 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
           const SizedBox(height: 8),
           Expanded(
             child: ListView(
+              padding: EdgeInsets.zero,
               physics: const NeverScrollableScrollPhysics(),
               children: widget.features
                   .map((feature) => Padding(
