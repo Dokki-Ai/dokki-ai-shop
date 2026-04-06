@@ -41,11 +41,15 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         return;
       }
 
-      // Вызываем реальный Stripe сервис
-      await StripeService().createCheckoutSession(botId: widget.botId);
+      // Определяем технический ID плана для Stripe
+      final String planId =
+          _selectedPlan == 'monthly' ? 'monthly_50' : 'monthly_200';
 
-      // После вызова Stripe браузер откроется автоматически через url_launcher
-      // Приложение будет ждать в бэкграунде
+      // Вызываем реальный Stripe сервис с новым параметром plan
+      await StripeService().createCheckoutSession(
+        botId: widget.botId,
+        plan: planId,
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

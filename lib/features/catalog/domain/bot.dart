@@ -1,5 +1,4 @@
 import '../../../core/localization/app_strings.dart';
-import 'package:flutter/foundation.dart';
 
 class Bot {
   final String id;
@@ -9,13 +8,12 @@ class Bot {
   final String _categoryKey;
   final String tier;
   final String? imageUrl;
-
   final String descriptionRu;
   final String descriptionEn;
   final String? descriptionAr;
   final List<String> featuresRu;
   final List<String> featuresEn;
-
+  final List<String> featuresAr;
   final String? githubRepo;
   final double? priceMonthly;
   final double? priceYearly;
@@ -33,6 +31,7 @@ class Bot {
     this.descriptionAr,
     required this.featuresRu,
     required this.featuresEn,
+    this.featuresAr = const [],
     this.githubRepo,
     this.priceMonthly,
     this.priceYearly,
@@ -42,17 +41,13 @@ class Bot {
   String get categoryKey => _categoryKey;
 
   factory Bot.fromJson(Map<String, dynamic> json) {
-    // ✅ ИСПРАВЛЕНО: Используем правильное имя колонки из Supabase
     final String rawCategory = json['category_key'] as String? ?? 'general';
-
-    debugPrint(
-        '🤖 ПАРСИНГ: ${json['name']} | Key из БД: ${json['category_key']} -> Итог: $rawCategory');
 
     return Bot(
       id: json['id'] as String,
       name: json['name'] as String,
       description: json['description'] as String? ?? '',
-      shortDescription: json['specialization'] as String? ?? '',
+      shortDescription: json['short_description'] as String? ?? '',
       category: rawCategory,
       tier: json['tier'] as String? ?? 'basic',
       imageUrl: json['image_url'] as String?,
@@ -61,6 +56,7 @@ class Bot {
       descriptionAr: json['description_ar'] as String?,
       featuresRu: List<String>.from(json['features_ru'] ?? []),
       featuresEn: List<String>.from(json['features_en'] ?? []),
+      featuresAr: List<String>.from(json['features_ar'] ?? []),
       githubRepo: json['github_repo'] as String?,
       priceMonthly: (json['price_monthly'] as num?)?.toDouble(),
       priceYearly: (json['price_yearly'] as num?)?.toDouble(),
@@ -79,6 +75,13 @@ class Bot {
   }
 
   List<String> getLocalizedFeatures(AppLanguage language) {
-    return language == AppLanguage.ru ? featuresRu : featuresEn;
+    switch (language) {
+      case AppLanguage.ru:
+        return featuresRu.isNotEmpty ? featuresRu : featuresEn;
+      case AppLanguage.ar:
+        return featuresAr.isNotEmpty ? featuresAr : featuresEn;
+      case AppLanguage.en:
+        return featuresEn;
+    }
   }
 }

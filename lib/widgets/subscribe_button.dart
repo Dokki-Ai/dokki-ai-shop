@@ -5,7 +5,6 @@ import '../services/stripe_service.dart';
 final checkoutLoadingProvider = StateProvider<bool>((ref) => false);
 
 class SubscribeButton extends ConsumerWidget {
-  // Добавили параметр, чтобы кнопка знала, какой бот в очереди на оплату
   final String botId;
 
   const SubscribeButton({
@@ -16,7 +15,6 @@ class SubscribeButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isLoading = ref.watch(checkoutLoadingProvider);
-    // Удалили неиспользуемую локальную переменную stripeService
 
     return SizedBox(
       width: double.infinity,
@@ -34,8 +32,11 @@ class SubscribeButton extends ConsumerWidget {
             : () async {
                 ref.read(checkoutLoadingProvider.notifier).state = true;
                 try {
-                  // ИСПРАВЛЕНО: Передаем botId напрямую
-                  await StripeService().createCheckoutSession(botId: botId);
+                  // Исправлено: добавлены обязательные параметры botId и plan
+                  await StripeService().createCheckoutSession(
+                    botId: botId,
+                    plan: 'monthly_50',
+                  );
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

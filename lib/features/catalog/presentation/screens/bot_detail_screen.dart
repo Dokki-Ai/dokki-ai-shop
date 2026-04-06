@@ -10,48 +10,57 @@ import '../../../../services/stripe_service.dart';
 import '../../domain/bot.dart';
 import '../../providers/catalog_providers.dart';
 
-class BotDetailScreen extends ConsumerWidget {
+class BotDetailScreen extends ConsumerStatefulWidget {
   final String category;
 
   const BotDetailScreen({super.key, required this.category});
 
-  // ФУНКЦИЯ С ДЕБАГ-ЛОГАМИ
-  String _buildImageUrl(String? rawPath) {
-    // ЛОГ 1: Что пришло из базы данных
-    debugPrint('DEBUG _buildImageUrl input: $rawPath');
+  @override
+  ConsumerState<BotDetailScreen> createState() => _BotDetailScreenState();
+}
 
-    if (rawPath == null || rawPath.isEmpty) {
-      debugPrint('DEBUG _buildImageUrl: rawPath is null or empty');
-      return '';
+class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
+  bool _isProActive = false;
+  bool _isLoadingSub = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkProSubscription();
+  }
+
+  Future<void> _checkProSubscription() async {
+    final supabase = ref.read(supabaseClientProvider);
+    final session = supabase.auth.currentSession;
+    if (session == null) {
+      if (mounted) setState(() => _isLoadingSub = false);
+      return;
     }
 
-    // Если путь уже является полной ссылкой
-    if (rawPath.startsWith('http')) {
-      final url = '$rawPath?v=1.0.5';
-      debugPrint('DEBUG _buildImageUrl (direct http): $url');
-      return url;
+    try {
+      final response = await supabase
+          .from('subscriptions')
+          .select()
+          .eq('user_id', session.user.id)
+          .eq('status', 'active')
+          .inFilter('plan', ['monthly_100', 'monthly_200']);
+
+      if (mounted) {
+        setState(() {
+          _isProActive = response.isNotEmpty;
+          _isLoadingSub = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingSub = false);
     }
-
-    // Формируем путь к файлу.
-    // ВНИМАНИЕ: Если в базе путь 'folder/image.png', split('/').last оставит только 'image.png'
-    final fileName = rawPath.split('/').last;
-
-    const baseUrl =
-        'https://capqdnwuquxdeuqnohps.supabase.co/storage/v1/object/public/bot-images/';
-
-    final fullUrl = '$baseUrl$fileName?v=1.0.5';
-
-    // ЛОГ 2: Что получилось на выходе
-    debugPrint('DEBUG _buildImageUrl output: $fullUrl');
-
-    return fullUrl;
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final AppStrings s = ref.watch(stringsProvider);
     final AppLanguage currentLang = ref.watch(languageProvider);
-    final botsAsync = ref.watch(botsByCategoryProvider(category));
+    final botsAsync = ref.watch(botsByCategoryProvider(widget.category));
 
     return botsAsync.when(
       loading: () => const Scaffold(
@@ -59,8 +68,9 @@ class BotDetailScreen extends ConsumerWidget {
       ),
       error: (err, stack) => Scaffold(
         body: Center(
-            child: Text('Ошибка: $err',
-                style: const TextStyle(color: AppColors.error))),
+          child: Text('Ошибка: $err',
+              style: const TextStyle(color: AppColors.error)),
+        ),
       ),
       data: (List<Bot> bots) {
         if (bots.isEmpty) {
@@ -82,186 +92,290 @@ class BotDetailScreen extends ConsumerWidget {
             title: Text(
               bot.name,
               style: const TextStyle(
-                  color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             centerTitle: true,
           ),
-          body: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 600),
+          body: ListView(
+            padding: const EdgeInsets.only(bottom: 24),
+            children: [
+              // 1. Описание
+              Container(
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: double.infinity,
-                      height: 250,
-                      color: AppColors.surface,
-                      child: Image.network(
-                        _buildImageUrl(bot.imageUrl),
-                        fit: BoxFit.contain,
-                        alignment: Alignment.center,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return const Center(
-                              child: CircularProgressIndicator(
-                                  color: AppColors.accent));
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          debugPrint(
-                              'DEBUG Image.network ERROR for URL: ${_buildImageUrl(bot.imageUrl)}');
-                          return const Icon(Icons.smart_toy_outlined,
-                              size: 64, color: AppColors.textSecondary);
-                        },
+                    Text(
+                      s.catDescription.toUpperCase(),
+                      style: const TextStyle(
+                        color: AppColors.accent,
+                        fontSize: 13,
+                        letterSpacing: 1.1,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            s.catDescription.toUpperCase(),
-                            style: const TextStyle(
-                                fontSize: 13,
-                                letterSpacing: 1.1,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.accent),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            fullDescription,
-                            style: const TextStyle(
-                                fontSize: 14,
-                                color: AppColors.textSecondary,
-                                height: 1.4),
-                          ),
-                          const SizedBox(height: 24),
-                          if (features.isNotEmpty) ...[
-                            Text(
-                              s.catFunctions.toUpperCase(),
-                              style: const TextStyle(
-                                  fontSize: 13,
-                                  letterSpacing: 1.1,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.accent),
-                            ),
-                            const SizedBox(height: 16),
-                            ...features.take(4).map((feature) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Icon(Icons.check_circle,
-                                          color: AppColors.accent, size: 20),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Text(
-                                          feature,
-                                          style: const TextStyle(
-                                              fontSize: 14,
-                                              color: AppColors.textPrimary,
-                                              fontWeight: FontWeight.w500),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                )),
-                          ],
-                        ],
+                    const SizedBox(height: 8),
+                    Text(
+                      fullDescription,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 14,
+                        height: 1.4,
                       ),
                     ),
-                    const SizedBox(height: 100),
                   ],
                 ),
               ),
-            ),
-          ),
-          bottomNavigationBar: Container(
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              border: const Border(top: BorderSide(color: AppColors.border)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, -4),
-                ),
-              ],
-            ),
-            child: SafeArea(
-              child: Center(
-                heightFactor: 1.0,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 600),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          final session = ref
-                              .read(supabaseClientProvider)
-                              .auth
-                              .currentSession;
 
-                          if (session == null) {
-                            context.push('/auth');
-                            return;
-                          }
-
-                          showDialog(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (ctx) => const Center(
-                              child: CircularProgressIndicator(
-                                  color: AppColors.accent),
-                            ),
-                          );
-
-                          try {
-                            // ✅ ИСПРАВЛЕНО: Передаем bot.id в сессию оплаты
-                            await StripeService()
-                                .createCheckoutSession(botId: bot.id);
-                            if (context.mounted) Navigator.of(context).pop();
-                          } catch (e) {
-                            if (context.mounted) {
-                              Navigator.of(context).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Ошибка: $e'),
-                                  backgroundColor: AppColors.error,
-                                ),
-                              );
-                            }
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.accent,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          '${s.botConnect} - \$50/${s.payMonth}',
-                          style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white),
-                        ),
+              // 2. Функции
+              Container(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      s.catFunctions.toUpperCase(),
+                      style: const TextStyle(
+                        color: AppColors.accent,
+                        fontSize: 13,
+                        letterSpacing: 1.1,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 16),
+                    ...features.take(5).map((feature) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.check_circle,
+                                color: AppColors.accent, size: 20),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                feature,
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
                 ),
               ),
-            ),
+
+              // 3. Basic карточка
+              _PlanCard(
+                botId: bot.id,
+                title: 'Basic',
+                price: '\$50/мес',
+                planId: 'monthly_50',
+                features: const [
+                  'AI бот в Telegram',
+                  'Общая база данных',
+                  'Прайс и инструкции',
+                ],
+              ),
+
+              // 4. Pro карточка
+              _isLoadingSub
+                  ? const Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Center(
+                        child:
+                            CircularProgressIndicator(color: AppColors.accent),
+                      ),
+                    )
+                  : _PlanCard(
+                      botId: bot.id,
+                      title: 'Pro',
+                      price: '\$100/мес',
+                      planId: 'monthly_100',
+                      features: const [
+                        'AI бот в Telegram',
+                        'Личная база данных',
+                        'Прайс и инструкции',
+                      ],
+                      isProActive: _isProActive,
+                    ),
+            ],
           ),
         );
       },
+    );
+  }
+}
+
+class _PlanCard extends ConsumerStatefulWidget {
+  final String botId;
+  final String title;
+  final String price;
+  final String planId;
+  final List<String> features;
+  final bool isProActive;
+
+  const _PlanCard({
+    required this.botId,
+    required this.title,
+    required this.price,
+    required this.planId,
+    required this.features,
+    this.isProActive = false,
+  });
+
+  @override
+  ConsumerState<_PlanCard> createState() => _PlanCardState();
+}
+
+class _PlanCardState extends ConsumerState<_PlanCard> {
+  bool _isLoading = false;
+
+  Future<void> _handleCheckout() async {
+    final session = ref.read(supabaseClientProvider).auth.currentSession;
+    if (session == null) {
+      context.push('/auth');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      await StripeService().createCheckoutSession(
+        botId: widget.botId,
+        plan: widget.planId,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16.0),
+        // ИСПРАВЛЕНО: .withValues() вместо .withOpacity()
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                widget.title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              Text(
+                widget.price,
+                style: const TextStyle(
+                  color: AppColors.accent,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1, thickness: 1, color: AppColors.border),
+          const SizedBox(height: 12),
+          ...widget.features.map((feature) => Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle,
+                        size: 18, color: AppColors.accent),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        feature,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+          const SizedBox(height: 16),
+          if (widget.isProActive)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: Text(
+                  'Уже активен — личная база данных',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            )
+          else
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                  elevation: 0,
+                ),
+                onPressed: _isLoading ? null : _handleCheckout,
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'ПОДКЛЮЧИТЬ',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
