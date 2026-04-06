@@ -1,5 +1,3 @@
-// lib/features/bot_management/presentation/screens/bot_config_screen.dart
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -30,16 +28,16 @@ class BotConfigScreen extends ConsumerStatefulWidget {
 class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
   final _formKey = GlobalKey<FormState>();
   final _botTokenController = TextEditingController();
-  final _apiKeyController = TextEditingController();
+  // УДАЛЕНО: _apiKeyController
   final _businessNameController = TextEditingController();
   final _welcomeController = TextEditingController();
 
   String? _botTokenError;
-  String? _apiKeyError;
+  // УДАЛЕНО: _apiKeyError
   String? _businessNameError;
 
   bool _isLoading = false;
-  bool _obscureApiKey = true;
+  // УДАЛЕНО: _obscureApiKey
   bool _obscureBotToken = true;
 
   @override
@@ -57,7 +55,7 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
   @override
   void dispose() {
     _botTokenController.dispose();
-    _apiKeyController.dispose();
+    // УДАЛЕНО: _apiKeyController.dispose()
     _businessNameController.dispose();
     _welcomeController.dispose();
     super.dispose();
@@ -66,7 +64,7 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
   Future<void> _saveConfig() async {
     setState(() {
       _botTokenError = null;
-      _apiKeyError = null;
+      // УДАЛЕНО: _apiKeyError = null
       _businessNameError = null;
     });
 
@@ -86,18 +84,16 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
               'businessId': Supabase.instance.client.auth.currentUser?.id ?? '',
               'botId': widget.botId,
               'botToken': _botTokenController.text.trim(),
-              'openaiKey': _apiKeyController.text.trim(),
+              // УДАЛЕНО: 'openaiKey'
               'businessName': _businessNameController.text.trim(),
               'welcomeMessage': _welcomeController.text.trim(),
             }),
           )
-          .timeout(
-              const Duration(minutes: 3)); // Увеличенный таймаут для Railway
+          .timeout(const Duration(minutes: 3));
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
-        // Читаем telegramUsername из ответа оркестратора
         final telegramUsername = data['telegramUsername'] as String? ?? '';
 
         // Сохраняем локально и в репозиторий бизнеса
@@ -108,7 +104,7 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
               botCategory: widget.botCategory,
               telegramUsername: telegramUsername,
               businessName: _businessNameController.text.trim(),
-              openaiKey: _apiKeyController.text.trim(),
+              // УДАЛЕНО: openaiKey
               alertsTopicId: 6,
             );
 
@@ -119,7 +115,7 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
 
         setState(() {
           if (errorField == 'botToken') _botTokenError = errorMessage;
-          if (errorField == 'openaiKey') _apiKeyError = errorMessage;
+          // УДАЛЕНО: обработка ошибки openaiKey
           if (errorField == 'businessName') _businessNameError = errorMessage;
         });
 
@@ -287,60 +283,8 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
 
               const SizedBox(height: 20),
 
-              // OPENAI API KEY
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _apiKeyController,
-                      obscureText: _obscureApiKey,
-                      style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: _buildDecor(
-                        'OpenAI API Key',
-                        'sk-proj-...',
-                        suffix: IconButton(
-                          icon: Icon(
-                              _obscureApiKey
-                                  ? Icons.visibility
-                                  : Icons.visibility_off,
-                              color: AppColors.textSecondary),
-                          onPressed: () =>
-                              setState(() => _obscureApiKey = !_obscureApiKey),
-                        ),
-                      ).copyWith(errorText: _apiKeyError),
-                      validator: (v) {
-                        final key = v?.trim() ?? "";
-                        if (key.isEmpty) return 'Введите ключ API';
-                        if (!key.startsWith('sk-')) {
-                          return 'Должен начинаться с "sk-"';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: IconButton(
-                      icon: const Icon(Icons.content_paste,
-                          color: AppColors.accent, size: 28),
-                      onPressed: () async {
-                        final data =
-                            await Clipboard.getData(Clipboard.kTextPlain);
-                        if (data?.text != null) {
-                          setState(() {
-                            _apiKeyController.text = data!.text!;
-                            _apiKeyError = null;
-                          });
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
+              // УДАЛЕНО: Весь блок OPENAI API KEY
 
-              const SizedBox(height: 20),
               TextFormField(
                 controller: _businessNameController,
                 style: const TextStyle(color: AppColors.textPrimary),
