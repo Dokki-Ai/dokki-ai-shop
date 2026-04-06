@@ -97,14 +97,13 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
             ),
             centerTitle: true,
           ),
-          body: Column(
-            children: [
-              // 1. Описание (ИСПРАВЛЕНО: Flex: 2)
-              Expanded(
-                flex: 2,
-                child: Container(
+          body: SingleChildScrollView(
+            child: Column(
+              children: [
+                // 1. Описание
+                Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 8.0),
+                      horizontal: 16.0, vertical: 12.0),
                   width: double.infinity,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,26 +118,20 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Expanded(
-                        child: Text(
-                          fullDescription,
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 14,
-                            height: 1.3,
-                          ),
-                          overflow: TextOverflow.fade,
+                      Text(
+                        fullDescription,
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 14,
+                          height: 1.3,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
 
-              // 2. Функции из БД (ИСПРАВЛЕНО: Flex: 2)
-              Expanded(
-                flex: 2,
-                child: Container(
+                // 2. Функции
+                Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 16.0, vertical: 8.0),
                   width: double.infinity,
@@ -170,8 +163,6 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
                                 child: Text(
                                   feature,
                                   style: const TextStyle(fontSize: 13),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -181,12 +172,9 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
                     ],
                   ),
                 ),
-              ),
 
-              // 3. Basic карточка (ИСПРАВЛЕНО: Flex: 4)
-              Expanded(
-                flex: 4,
-                child: _PlanCard(
+                // 3. Basic карточка
+                _PlanCard(
                   s: s,
                   botId: bot.id,
                   title: 'Basic',
@@ -201,15 +189,14 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
                     s.planFeatureTelegram,
                   ],
                 ),
-              ),
 
-              // 4. Pro карточка (ИСПРАВЛЕНО: Flex: 4)
-              Expanded(
-                flex: 4,
-                child: _isLoadingSub
-                    ? const Center(
+                // 4. Pro карточка
+                _isLoadingSub
+                    ? const Padding(
+                        padding: EdgeInsets.all(20),
                         child:
-                            CircularProgressIndicator(color: AppColors.accent))
+                            CircularProgressIndicator(color: AppColors.accent),
+                      )
                     : _PlanCard(
                         s: s,
                         botId: bot.id,
@@ -224,8 +211,10 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
                         ],
                         isProActive: _isProActive,
                       ),
-              ),
-            ],
+
+                const SizedBox(height: 24),
+              ],
+            ),
           ),
         );
       },
@@ -301,6 +290,7 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min, // Позволяет колонке сжиматься
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -325,35 +315,32 @@ class _PlanCardState extends ConsumerState<_PlanCard> {
           ),
           const SizedBox(height: 8),
           const Divider(height: 1, thickness: 1, color: AppColors.border),
-          const SizedBox(height: 8),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              physics: const NeverScrollableScrollPhysics(),
-              children: widget.features
-                  .map((feature) => Padding(
-                        padding: const EdgeInsets.only(bottom: 6.0),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.check_circle,
-                                size: 14, color: AppColors.accent),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                feature,
-                                style: const TextStyle(
-                                    fontSize: 13, color: AppColors.textPrimary),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+          const SizedBox(height: 12),
+
+          // ИСПРАВЛЕНО: Заменили Expanded + ListView на Column
+          Column(
+            children: widget.features
+                .map((feature) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.check_circle,
+                              size: 14, color: AppColors.accent),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              feature,
+                              style: const TextStyle(
+                                  fontSize: 13, color: AppColors.textPrimary),
                             ),
-                          ],
-                        ),
-                      ))
-                  .toList(),
-            ),
+                          ),
+                        ],
+                      ),
+                    ))
+                .toList(),
           ),
-          const SizedBox(height: 8),
+
+          const SizedBox(height: 12),
           if (widget.isProActive)
             Center(
               child: Text(
