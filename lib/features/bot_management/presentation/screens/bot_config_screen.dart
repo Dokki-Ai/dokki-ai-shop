@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/localization/language_provider.dart';
+import '../../../../core/localization/app_strings.dart';
 import '../../providers/bot_management_providers.dart';
 
 class BotConfigScreen extends ConsumerStatefulWidget {
@@ -28,16 +29,13 @@ class BotConfigScreen extends ConsumerStatefulWidget {
 class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
   final _formKey = GlobalKey<FormState>();
   final _botTokenController = TextEditingController();
-  // УДАЛЕНО: _apiKeyController
   final _businessNameController = TextEditingController();
   final _welcomeController = TextEditingController();
 
   String? _botTokenError;
-  // УДАЛЕНО: _apiKeyError
   String? _businessNameError;
 
   bool _isLoading = false;
-  // УДАЛЕНО: _obscureApiKey
   bool _obscureBotToken = true;
 
   @override
@@ -47,24 +45,24 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
   }
 
   void _initializeDefaultValues() {
+    // Используем статическое поле currentLanguage для инициализации в initState
+    final s = AppStrings(AppStrings.currentLanguage);
     _businessNameController.text = widget.botName;
-    _welcomeController.text =
-        'Здравствуйте! Вас приветствует ${widget.botName}. Чем могу помочь?';
+    _welcomeController.text = s.botConfigDefaultWelcome(widget.botName);
   }
 
   @override
   void dispose() {
     _botTokenController.dispose();
-    // УДАЛЕНО: _apiKeyController.dispose()
     _businessNameController.dispose();
     _welcomeController.dispose();
     super.dispose();
   }
 
   Future<void> _saveConfig() async {
+    // Переменная s здесь удалена, так как она не использовалась в методе
     setState(() {
       _botTokenError = null;
-      // УДАЛЕНО: _apiKeyError = null
       _businessNameError = null;
     });
 
@@ -75,7 +73,6 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
     try {
       final url = Uri.parse(ApiConstants.deployUrl);
 
-      // Отправляем запрос на оркестратор деплоя
       final response = await http
           .post(
             url,
@@ -84,7 +81,6 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
               'businessId': Supabase.instance.client.auth.currentUser?.id ?? '',
               'botId': widget.botId,
               'botToken': _botTokenController.text.trim(),
-              // УДАЛЕНО: 'openaiKey'
               'businessName': _businessNameController.text.trim(),
               'welcomeMessage': _welcomeController.text.trim(),
             }),
@@ -96,7 +92,6 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
       if (response.statusCode == 200 && data['success'] == true) {
         final telegramUsername = data['telegramUsername'] as String? ?? '';
 
-        // Сохраняем локально и в репозиторий бизнеса
         await ref.read(businessRepositoryProvider).connectBot(
               botId: widget.botId,
               botToken: _botTokenController.text.trim(),
@@ -104,18 +99,16 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
               botCategory: widget.botCategory,
               telegramUsername: telegramUsername,
               businessName: _businessNameController.text.trim(),
-              // УДАЛЕНО: openaiKey
               alertsTopicId: 6,
             );
 
-        if (mounted) _showSuccessDialog(telegramUsername);
+        if (mounted) _showSuccessDialog();
       } else {
-        final errorMessage = data['error'] ?? 'Ошибка деплоя';
+        final errorMessage = data['error'] ?? 'Deploy error';
         final errorField = data['field'];
 
         setState(() {
           if (errorField == 'botToken') _botTokenError = errorMessage;
-          // УДАЛЕНО: обработка ошибки openaiKey
           if (errorField == 'businessName') _businessNameError = errorMessage;
         });
 
@@ -135,17 +128,30 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
     }
   }
 
-  void _showSuccessDialog(String username) {
+  void _showSuccessDialog() {
+    final s = ref.read(stringsProvider);
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.card,
-        title: const Text('✅ Бот в очереди на деплой!',
-            style: TextStyle(color: AppColors.textPrimary)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.green),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                s.botConfigSuccess,
+                style:
+                    const TextStyle(color: AppColors.textPrimary, fontSize: 18),
+              ),
+            ),
+          ],
+        ),
         content: Text(
-          'Ваш бот $username создаётся на сервере.\n\nЭто займёт 1-2 минуты. Бот сам напишет вам в Telegram, когда будет готов.',
-          style: const TextStyle(color: AppColors.textSecondary),
+          s.botConfigSuccessHint,
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
         ),
         actions: [
           TextButton(
@@ -153,8 +159,11 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
               Navigator.of(context).pop();
               context.go('/');
             },
-            child: const Text('Понятно',
-                style: TextStyle(color: AppColors.accent)),
+            child: Text(
+              s.botConfigOk,
+              style: const TextStyle(
+                  color: AppColors.accent, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -189,12 +198,17 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = ref.watch(stringsProvider);
+    // ignore: unused_local_variable
+    final currentLang = ref.watch(languageProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Настройка и Деплой'),
+        title: Text(s.botConfigTitle),
         backgroundColor: AppColors.background,
         elevation: 0,
+        centerTitle: true,
       ),
       body: Form(
         key: _formKey,
@@ -203,6 +217,7 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ИНФО-БЛОК
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -210,99 +225,84 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: AppColors.border),
                 ),
-                child: const Column(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.rocket_launch_outlined,
+                        const Icon(Icons.rocket_launch_outlined,
                             color: AppColors.accent),
-                        SizedBox(width: 8),
-                        Text('Запуск персонального бота',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary)),
+                        const SizedBox(width: 8),
+                        Text(
+                          s.botConfigTitle,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
                       ],
                     ),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     Text(
-                        'Мы создадим для вас отдельный проект на Railway и запустим в нём вашего ИИ-ассистента.',
-                        style: TextStyle(
-                            color: AppColors.textSecondary, fontSize: 13)),
+                      s.botConfigSubtitle,
+                      style: const TextStyle(
+                          color: AppColors.textSecondary, fontSize: 13),
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
 
-              // TELEGRAM BOT TOKEN
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _botTokenController,
-                      obscureText: _obscureBotToken,
-                      style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: _buildDecor(
-                        'Telegram Bot Token',
-                        '123456:ABC-DEF...',
-                        suffix: IconButton(
-                          icon: Icon(
-                              _obscureBotToken
-                                  ? Icons.visibility
-                                  : Icons.visibility_off,
-                              color: AppColors.textSecondary),
-                          onPressed: () => setState(
-                              () => _obscureBotToken = !_obscureBotToken),
-                        ),
-                      ).copyWith(errorText: _botTokenError),
-                      validator: (v) =>
-                          (v == null || v.isEmpty) ? 'Введите токен' : null,
+              // ТОКЕН БОТА
+              TextFormField(
+                controller: _botTokenController,
+                obscureText: _obscureBotToken,
+                style: const TextStyle(color: AppColors.textPrimary),
+                decoration: _buildDecor(
+                  s.botConfigTokenLabel,
+                  '123456:ABC-DEF...',
+                  suffix: IconButton(
+                    icon: Icon(
+                      _obscureBotToken
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                      color: AppColors.textSecondary,
                     ),
+                    onPressed: () =>
+                        setState(() => _obscureBotToken = !_obscureBotToken),
                   ),
-                  const SizedBox(width: 8),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: IconButton(
-                      icon: const Icon(Icons.content_paste,
-                          color: AppColors.accent, size: 28),
-                      onPressed: () async {
-                        final data =
-                            await Clipboard.getData(Clipboard.kTextPlain);
-                        if (data?.text != null) {
-                          setState(() {
-                            _botTokenController.text = data!.text!;
-                            _botTokenError = null;
-                          });
-                        }
-                      },
-                    ),
-                  ),
-                ],
+                ).copyWith(errorText: _botTokenError),
+                validator: (v) =>
+                    (v == null || v.isEmpty) ? s.botConfigTokenRequired : null,
               ),
 
               const SizedBox(height: 20),
 
-              // УДАЛЕНО: Весь блок OPENAI API KEY
-
+              // НАЗВАНИЕ КОМПАНИИ
               TextFormField(
                 controller: _businessNameController,
                 style: const TextStyle(color: AppColors.textPrimary),
                 decoration:
-                    _buildDecor('Название компании', 'Напр: Dokki Sales')
+                    _buildDecor(s.botConfigCompanyLabel, 'Dokki Business')
                         .copyWith(errorText: _businessNameError),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Введите название' : null,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? s.botConfigNameRequired
+                    : null,
               ),
+
               const SizedBox(height: 20),
+
+              // ПРИВЕТСТВЕННОЕ СООБЩЕНИЕ
               TextFormField(
                 controller: _welcomeController,
                 maxLines: 3,
                 style: const TextStyle(color: AppColors.textPrimary),
-                decoration:
-                    _buildDecor('Приветствие', 'Что бот скажет первым?'),
+                decoration: _buildDecor(s.botConfigWelcomeLabel, ''),
               ),
+
               const SizedBox(height: 40),
+
+              // КНОПКА ЗАПУСКА
               SizedBox(
                 width: double.infinity,
                 height: 58,
@@ -321,12 +321,13 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
                           child: CircularProgressIndicator(
                               color: Colors.white, strokeWidth: 2.5),
                         )
-                      : const Text(
-                          'ЗАПУСТИТЬ ДЕПЛОЙ',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.white),
+                      : Text(
+                          s.botConfigDeploy,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
                         ),
                 ),
               ),

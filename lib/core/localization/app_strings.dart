@@ -242,9 +242,8 @@ class AppStrings {
   String get payMonth => _map(
       {AppLanguage.ru: 'мес', AppLanguage.en: 'month', AppLanguage.ar: 'شهر'});
   String get payYear => _map(
-      {AppLanguage.ru: 'год', AppLanguage.en: 'year', AppLanguage.ar: 'سنة'});
+      {AppLanguage.ru: 'год', AppLanguage.en: 'year', AppLanguage.ar: 'сنة'});
 
-  // ВОССТАНОВЛЕНО: payAction
   String get payAction => _map({
         AppLanguage.ru: 'ПОДКЛЮЧИТЬ ЗА',
         AppLanguage.en: 'CONNECT FOR',
@@ -267,7 +266,7 @@ class AppStrings {
         AppLanguage.ar: 'استمرار'
       });
 
-  // --- Подключение бота ---
+  // --- Подключение бота (Старый флоу) ---
   String get connStep1Title => _map({
         AppLanguage.ru: 'Шаг 1: Подключение Telegram',
         AppLanguage.en: 'Step 1: Telegram Connection',
@@ -306,6 +305,85 @@ class AppStrings {
         AppLanguage.en: 'Please enter Telegram token',
         AppLanguage.ar: 'يرجى إدخال الرمز'
       });
+
+  // --- Настройка бота (BotConfigScreen) ---
+  String get botConfigTitle => _map({
+        AppLanguage.ru: 'Подключение бота',
+        AppLanguage.en: 'Bot Setup',
+        AppLanguage.ar: 'إعداد البوت',
+      });
+
+  String get botConfigSubtitle => _map({
+        AppLanguage.ru:
+            'Введите токен вашего Telegram бота и данные компании. Бот будет запущен автоматически.',
+        AppLanguage.en:
+            'Enter your Telegram bot token and company details. The bot will be launched automatically.',
+        AppLanguage.ar:
+            'أدخل رمز بوت تيليغرام الخاص بك وبيانات الشركة. سيتم تشغيل البوت تلقائياً.',
+      });
+
+  String get botConfigTokenLabel => _map({
+        AppLanguage.ru: 'Токен Telegram бота',
+        AppLanguage.en: 'Telegram Bot Token',
+        AppLanguage.ar: 'رمز بوت تيليغرام',
+      });
+
+  String get botConfigCompanyLabel => _map({
+        AppLanguage.ru: 'Название компании',
+        AppLanguage.en: 'Company name',
+        AppLanguage.ar: 'اسم الشركة',
+      });
+
+  String get botConfigWelcomeLabel => _map({
+        AppLanguage.ru: 'Приветственное сообщение',
+        AppLanguage.en: 'Welcome message',
+        AppLanguage.ar: 'رسالة الترحيب',
+      });
+
+  String get botConfigDeploy => _map({
+        AppLanguage.ru: 'ЗАПУСТИТЬ БОТА',
+        AppLanguage.en: 'LAUNCH BOT',
+        AppLanguage.ar: 'تشغيل البوت',
+      });
+
+  String get botConfigSuccess => _map({
+        AppLanguage.ru: 'Бот запускается! Это займёт 1-2 минуты.',
+        AppLanguage.en: 'Bot is launching! This will take 1-2 minutes.',
+        AppLanguage.ar: 'يتم تشغيل البوت! سيستغرق ذلك 1-2 دقيقة.',
+      });
+
+  String get botConfigSuccessHint => _map({
+        AppLanguage.ru: 'Бот напишет вам в Telegram когда будет готов.',
+        AppLanguage.en: 'The bot will message you in Telegram when ready.',
+        AppLanguage.ar: 'سيرسل لك البوت رسالة في تيليغرام когда يكون جاهزاً.',
+      });
+
+  String get botConfigOk => _map({
+        AppLanguage.ru: 'Понятно',
+        AppLanguage.en: 'Got it',
+        AppLanguage.ar: 'حسناً',
+      });
+
+  String get botConfigTokenRequired => _map({
+        AppLanguage.ru: 'Введите токен',
+        AppLanguage.en: 'Enter token',
+        AppLanguage.ar: 'أدخل الرمز',
+      });
+
+  String get botConfigNameRequired => _map({
+        AppLanguage.ru: 'Введите название',
+        AppLanguage.en: 'Enter name',
+        AppLanguage.ar: 'أدخل الاسم',
+      });
+
+  String botConfigDefaultWelcome(String botName) => _map({
+        AppLanguage.ru:
+            'Здравствуйте! Вас приветствует $botName. Чем могу помочь?',
+        AppLanguage.en: 'Hello! Welcome to $botName. How can I help you?',
+        AppLanguage.ar: 'مرحباً! أهلاً بكم في $botName. كيف يمكنني مساعدتك؟',
+      });
+
+  // --- Railway ---
   String get connRailwayInstrTitle => _map({
         AppLanguage.ru: 'ИНСТРУКЦИЯ RAILWAY',
         AppLanguage.en: 'RAILWAY INSTRUCTIONS',
@@ -406,7 +484,7 @@ class AppStrings {
   String get setVersion => _map({
         AppLanguage.ru: 'Версия',
         AppLanguage.en: 'Version',
-        AppLanguage.ar: 'الإصдар'
+        AppLanguage.ar: 'الإصدار'
       });
   String get setNotifSettings => _map({
         AppLanguage.ru: 'Настройки уведомлений',
