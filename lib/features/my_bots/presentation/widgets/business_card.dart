@@ -15,8 +15,12 @@ class BusinessCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Статус из модели бизнеса
-    final String status = business.status;
+    // Проверка необходимости первичной настройки
+    final bool needsSetup =
+        business.telegramToken == null || business.telegramToken!.isEmpty;
+
+    // Если токена нет — форсируем статус 'setup', иначе берем из модели
+    final String statusToDisplay = needsSetup ? 'setup' : business.status;
 
     // ЗАДАЧА 35: Увеличиваем высоту со 160 до 170
     const double cardHeight = 170.0;
@@ -112,9 +116,9 @@ class BusinessCard extends StatelessWidget {
                     // 3. Статус Row
                     Row(
                       children: [
-                        _buildStatusDot(status),
+                        _buildStatusDot(statusToDisplay),
                         const SizedBox(width: 6),
-                        _buildStatusText(status),
+                        _buildStatusText(statusToDisplay),
                       ],
                     ),
 
@@ -158,7 +162,7 @@ class BusinessCard extends StatelessWidget {
     Color color;
     if (status == 'active') {
       color = AppColors.success;
-    } else if (status == 'deploying') {
+    } else if (status == 'deploying' || status == 'setup') {
       color = AppColors.warning;
     } else if (status == 'error') {
       color = AppColors.error;
@@ -166,6 +170,7 @@ class BusinessCard extends StatelessWidget {
       color = AppColors.textSecondary; // paused и всё остальное
     }
 
+    // Спиннер только для процесса деплоя
     if (status == 'deploying') {
       return SizedBox(
         width: 8,
@@ -192,6 +197,9 @@ class BusinessCard extends StatelessWidget {
       color = AppColors.success;
     } else if (status == 'deploying') {
       label = 'Деплой...';
+      color = AppColors.warning;
+    } else if (status == 'setup') {
+      label = 'Настроить';
       color = AppColors.warning;
     } else if (status == 'error') {
       label = 'Ошибка';

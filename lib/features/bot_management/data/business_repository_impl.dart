@@ -16,7 +16,8 @@ class BusinessRepositoryImpl implements BusinessRepository {
     required String telegramUsername,
     required String businessName,
     String? openaiKey,
-    int? alertsTopicId, // Добавлено
+    int? alertsTopicId,
+    String? railwayUrl,
   }) async {
     final userId = _client.auth.currentUser!.id;
 
@@ -33,10 +34,10 @@ class BusinessRepositoryImpl implements BusinessRepository {
               'telegram_username': telegramUsername,
               'business_name': businessName,
               'openai_key': openaiKey,
-              'alerts_topic_id':
-                  alertsTopicId, // Добавлено для сохранения в базу
+              'alerts_topic_id': alertsTopicId,
               'status': 'active',
               'updated_at': DateTime.now().toIso8601String(),
+              if (railwayUrl != null) 'railway_url': railwayUrl,
             },
             onConflict: 'user_id,bot_id',
           )

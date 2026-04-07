@@ -8,11 +8,42 @@ import '../widgets/business_card.dart';
 import '../../../../core/localization/language_provider.dart';
 import '../../../../core/localization/app_strings.dart';
 
-class MyBotsScreen extends ConsumerWidget {
+class MyBotsScreen extends ConsumerStatefulWidget {
   const MyBotsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyBotsScreen> createState() => _MyBotsScreenState();
+}
+
+class _MyBotsScreenState extends ConsumerState<MyBotsScreen>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    // Регистрируем наблюдателя за жизненным циклом приложения
+    WidgetsBinding.instance.addObserver(this);
+    debugPrint('=== MY BOTS SCREEN: Observer Added ===');
+  }
+
+  @override
+  void dispose() {
+    // Обязательно удаляем наблюдателя
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Самый важный момент: когда пользователь возвращается из браузера после оплаты
+    if (state == AppLifecycleState.resumed) {
+      debugPrint(
+          'DEBUG: App resumed, invalidating connectedBotsProvider to refresh data...');
+      ref.invalidate(connectedBotsProvider);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // === ГЛОБАЛЬНЫЕ ЛОГИ ЭКРАНА ===
     debugPrint('=== MY BOTS SCREEN: build() started ===');
 
@@ -49,7 +80,6 @@ class MyBotsScreen extends ConsumerWidget {
           );
         },
         data: (user) {
-          // Проверяем, видит ли провайдер текущего юзера
           if (user == null) {
             debugPrint('DEBUG Auth: User is NULL (Showing Locked State)');
             return _buildLockedState(context, s);
@@ -57,7 +87,7 @@ class MyBotsScreen extends ConsumerWidget {
 
           debugPrint('DEBUG Auth: User ID = ${user.id}');
 
-          // Теперь следим за провайдером ботов
+          // Следим за провайдером ботов
           final connectedBotsAsync = ref.watch(connectedBotsProvider);
 
           return connectedBotsAsync.when(
@@ -69,14 +99,12 @@ class MyBotsScreen extends ConsumerWidget {
             },
             error: (err, stack) {
               debugPrint('DEBUG Bots Provider ERROR: $err');
-              debugPrint('DEBUG Bots Provider STACK: $stack');
               return Center(
                 child: Text('Ошибка базы: $err',
                     style: const TextStyle(color: AppColors.error)),
               );
             },
             data: (businesses) {
-              // Самый важный лог: сколько записей пришло из Supabase
               debugPrint(
                   'DEBUG Bots Provider DATA: Received ${businesses.length} items');
 
@@ -86,36 +114,54 @@ class MyBotsScreen extends ConsumerWidget {
                 return _buildEmptyState(context, s);
               }
 
-              return ListView.builder(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                itemCount: businesses.length,
-                itemBuilder: (context, index) {
-                  final business = businesses[index];
-                  debugPrint(
-                      'DEBUG: Rendering Bot Card for ID: ${business.id}');
+              return RefreshIndicator(
+                onRefresh: () => ref.refresh(connectedBotsProvider.future),
+                color: AppColors.accent,
+                child: ListView.builder(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                  itemCount: businesses.length,
+                  itemBuilder: (context, index) {
+                    final business = businesses[index];
+                    debugPrint(
+                        'DEBUG: Rendering Bot Card for ID: ${business.id}, Status: ${business.status}');
 
-                  return Align(
-                    alignment: Alignment.centerLeft,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 600),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: BusinessCard(
-                          business: business,
-                          onManage: () {
-                            debugPrint(
-                                'DEBUG: Navigate to management for ${business.id}');
-                            context.push(
-                              '/bot-management/${business.id}',
-                              extra: business,
-                            );
-                          },
+                    return Align(
+                      alignment: Alignment.centerLeft,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 600),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: BusinessCard(
+                            business: business,
+                            onManage: () {
+                              debugPrint(
+                                  'DEBUG: Navigate decision for ${business.id}');
+
+                              // ПРОВЕРКА: Нужна ли первичная настройка (ввод токена)
+                              final needsSetup =
+                                  business.telegramToken == null ||
+                                      business.telegramToken!.isEmpty;
+
+                              if (needsSetup) {
+                                // Если токена нет — на экран настройки
+                                context.push(
+                                  '/bot-config/${business.botId}/${business.botName}/${business.botCategory}',
+                                );
+                              } else {
+                                // Если токен есть — в панель управления
+                                context.push(
+                                  '/bot-management/${business.id}',
+                                  extra: business,
+                                );
+                              }
+                            },
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               );
             },
           );

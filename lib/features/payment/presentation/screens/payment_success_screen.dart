@@ -1,4 +1,4 @@
-import 'dart:async'; // ДОБАВЛЕНО
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/supabase/supabase_client.dart';
+import '../../../bot_management/providers/bot_management_providers.dart';
 
 class PaymentSuccessScreen extends ConsumerStatefulWidget {
   final String botId;
@@ -30,15 +31,12 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
   @override
   void initState() {
     super.initState();
-    // ИСПРАВЛЕНО: Новый метод ожидания сессии
     _waitForSessionThenHandle();
   }
 
-  // ДОБАВЛЕНО: Метод ожидания инициализации Supabase
   Future<void> _waitForSessionThenHandle() async {
     final supabase = ref.read(supabaseClientProvider);
 
-    // 1. Проверяем, есть ли пользователь уже сейчас
     final currentUser = supabase.auth.currentUser;
     if (currentUser != null) {
       debugPrint('✅ Сессия уже активна: ${currentUser.id}');
@@ -49,7 +47,6 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
     try {
       debugPrint('🔄 Ожидание события авторизации от Supabase...');
 
-      // 2. Слушаем поток событий до первого подходящего случая
       final authState = await supabase.auth.onAuthStateChange
           .firstWhere((data) =>
               data.event == AuthChangeEvent.initialSession ||
@@ -74,7 +71,6 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
     }
   }
 
-  // ИСПРАВЛЕНО: Сигнатура метода теперь принимает User
   Future<void> _handleSuccess(User user) async {
     try {
       final supabase = ref.read(supabaseClientProvider);
@@ -108,12 +104,44 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
         if (response != null) {
           debugPrint('💎 Подписка подтверждена!');
 
-          // 3. АКТИВАЦИЯ БИЗНЕСА
-          await supabase.from('businesses').upsert({
-            'user_id': user.id,
-            'bot_id': widget.botId,
-            'status': 'active',
-          }, onConflict: 'user_id, bot_id');
+          // Подготовка данных для создания/обновления записи бизнеса
+          final category =
+              widget.botId.split('_').first; // sales, admin, support
+          final capitalizedCategory =
+              category[0].toUpperCase() + category.substring(1);
+          final derivedName = 'Dokki $capitalizedCategory';
+
+          // 3. АКТИВАЦИЯ БИЗНЕСА (Проверка существования и Upsert логика)
+          final existing = await supabase
+              .from('businesses')
+              .select()
+              .eq('user_id', user.id)
+              .eq('bot_id', widget.botId)
+              .maybeSingle();
+
+          if (existing != null) {
+            // Запись существует — обновляем до статуса настройки
+            await supabase
+                .from('businesses')
+                .update({
+                  'bot_name': derivedName,
+                  'business_name': derivedName,
+                  'bot_category': category,
+                  'status': 'setup',
+                })
+                .eq('user_id', user.id)
+                .eq('bot_id', widget.botId);
+          } else {
+            // Записи нет — создаём новую со статусом setup
+            await supabase.from('businesses').insert({
+              'user_id': user.id,
+              'bot_id': widget.botId,
+              'bot_name': derivedName,
+              'business_name': derivedName,
+              'bot_category': category,
+              'status': 'setup',
+            });
+          }
 
           if (mounted) {
             setState(() {
@@ -166,7 +194,7 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
                 ),
               ] else if (_error != null) ...[
                 const Icon(Icons.access_time_rounded,
-                    size: 80, color: Colors.orange),
+                    size: 80, color: AppColors.warning),
                 const SizedBox(height: 24),
                 Text(
                   _error!,
@@ -180,11 +208,11 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
                   style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.accent),
                   child: const Text('Вернуться на главную',
-                      style: TextStyle(color: Colors.white)),
+                      style: TextStyle(color: AppColors.surface)),
                 ),
               ] else ...[
                 const Icon(Icons.check_circle_outline,
-                    size: 100, color: Colors.green),
+                    size: 100, color: AppColors.success),
                 const SizedBox(height: 32),
                 const Text(
                   'Подписка активна!',
@@ -202,16 +230,14 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     onPressed: () {
-                      final cat = widget.botId.split('_').first;
-                      final botName =
-                          'Dokki ${cat[0].toUpperCase()}${cat.substring(1)}';
-
-                      context.go('/bot-config/${widget.botId}/$botName/$cat');
+                      // Инвалидируем провайдер перед переходом, чтобы список ботов обновился
+                      ref.invalidate(connectedBotsProvider);
+                      context.go('/');
                     },
                     child: const Text(
-                      'Перейти к настройке бота',
+                      'Перейти к списку ботов',
                       style: TextStyle(
-                          color: Colors.white,
+                          color: AppColors.surface,
                           fontSize: 16,
                           fontWeight: FontWeight.bold),
                     ),

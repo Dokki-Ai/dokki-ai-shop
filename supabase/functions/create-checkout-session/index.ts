@@ -37,7 +37,8 @@ serve(async (req: Request) => {
     const userId = userData.id
     const userEmail = userData.email
 
-    const { plan, successUrl, cancelUrl } = await req.json()
+    // Извлекаем botId, переданный из Flutter приложения
+    const { botId, plan, successUrl, cancelUrl } = await req.json()
     if (!plan) throw new Error('Plan обязателен')
 
     const priceMap: Record<string, string> = {
@@ -48,7 +49,7 @@ serve(async (req: Request) => {
     const priceId = priceMap[plan]
     if (!priceId) throw new Error(`Неизвестный план: ${plan}`)
 
-    console.log(`🛠 Создание сессии для ${userId} (${userEmail}), план: ${plan}`)
+    console.log(`🛠 Создание сессии для ${userId} (${userEmail}), план: ${plan}, botId: ${botId}`)
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -58,7 +59,12 @@ serve(async (req: Request) => {
       customer_email: userEmail,
       success_url: successUrl,
       cancel_url: cancelUrl,
-      metadata: { user_id: userId, plan: plan },
+      // Передаем bot_id в metadata, чтобы webhook смог его прочитать после оплаты
+      metadata: { 
+        user_id: userId, 
+        plan: plan, 
+        bot_id: botId 
+      },
     })
 
     console.log(`✅ Сессия создана: ${session.id}`)

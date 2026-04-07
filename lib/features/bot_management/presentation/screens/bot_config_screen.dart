@@ -45,7 +45,6 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
   }
 
   void _initializeDefaultValues() {
-    // Используем статическое поле currentLanguage для инициализации в initState
     final s = AppStrings(AppStrings.currentLanguage);
     _businessNameController.text = widget.botName;
     _welcomeController.text = s.botConfigDefaultWelcome(widget.botName);
@@ -60,7 +59,6 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
   }
 
   Future<void> _saveConfig() async {
-    // Переменная s здесь удалена, так как она не использовалась в методе
     setState(() {
       _botTokenError = null;
       _businessNameError = null;
@@ -91,6 +89,7 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
 
       if (response.statusCode == 200 && data['success'] == true) {
         final telegramUsername = data['telegramUsername'] as String? ?? '';
+        final railwayUrl = data['railwayUrl'] as String?;
 
         await ref.read(businessRepositoryProvider).connectBot(
               botId: widget.botId,
@@ -100,6 +99,7 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
               telegramUsername: telegramUsername,
               businessName: _businessNameController.text.trim(),
               alertsTopicId: 6,
+              railwayUrl: railwayUrl,
             );
 
         if (mounted) _showSuccessDialog();
@@ -217,7 +217,6 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ИНФО-БЛОК
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -252,8 +251,6 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-
-              // ТОКЕН БОТА
               TextFormField(
                 controller: _botTokenController,
                 obscureText: _obscureBotToken,
@@ -275,10 +272,7 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
                 validator: (v) =>
                     (v == null || v.isEmpty) ? s.botConfigTokenRequired : null,
               ),
-
               const SizedBox(height: 20),
-
-              // НАЗВАНИЕ КОМПАНИИ
               TextFormField(
                 controller: _businessNameController,
                 style: const TextStyle(color: AppColors.textPrimary),
@@ -289,20 +283,14 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
                     ? s.botConfigNameRequired
                     : null,
               ),
-
               const SizedBox(height: 20),
-
-              // ПРИВЕТСТВЕННОЕ СООБЩЕНИЕ
               TextFormField(
                 controller: _welcomeController,
                 maxLines: 3,
                 style: const TextStyle(color: AppColors.textPrimary),
                 decoration: _buildDecor(s.botConfigWelcomeLabel, ''),
               ),
-
               const SizedBox(height: 40),
-
-              // КНОПКА ЗАПУСКА
               SizedBox(
                 width: double.infinity,
                 height: 58,
