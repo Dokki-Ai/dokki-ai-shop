@@ -500,7 +500,8 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
       body: SafeArea(
         child: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
-          child: widget.business.telegramToken == null
+          child: widget.business.status ==
+                  'setup' // ИСПРАВЛЕНО: ориентируемся на статус
               ? _buildSetupView()
               : SingleChildScrollView(
                   keyboardDismissBehavior:

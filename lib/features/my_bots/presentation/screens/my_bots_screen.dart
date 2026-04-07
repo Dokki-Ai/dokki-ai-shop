@@ -138,18 +138,13 @@ class _MyBotsScreenState extends ConsumerState<MyBotsScreen>
                               debugPrint(
                                   'DEBUG: Navigate decision for ${business.id}');
 
-                              // ПРОВЕРКА: Нужна ли первичная настройка (ввод токена)
-                              final needsSetup =
-                                  business.telegramToken == null ||
-                                      business.telegramToken!.isEmpty;
-
-                              if (needsSetup) {
-                                // Если токена нет — на экран настройки
+                              // ПРОВЕРКА: Если статус setup — на экран настройки
+                              if (business.status == 'setup') {
                                 context.push(
                                   '/bot-config/${business.botId}/${business.botName}/${business.botCategory}',
                                 );
                               } else {
-                                // Если токен есть — в панель управления
+                                // Иначе — в полноценную панель управления
                                 context.push(
                                   '/bot-management/${business.id}',
                                   extra: business,

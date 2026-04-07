@@ -15,12 +15,8 @@ class BusinessCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Проверка необходимости первичной настройки
-    final bool needsSetup =
-        business.telegramToken == null || business.telegramToken!.isEmpty;
-
-    // Если токена нет — форсируем статус 'setup', иначе берем из модели
-    final String statusToDisplay = needsSetup ? 'setup' : business.status;
+    // Отображаем статус напрямую из модели
+    final String statusToDisplay = business.status;
 
     // ЗАДАЧА 35: Увеличиваем высоту со 160 до 170
     const double cardHeight = 170.0;
