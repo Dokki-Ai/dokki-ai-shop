@@ -24,7 +24,7 @@ class Business {
   final String? botBusinessId;
   final int? alertsTopicId;
   final String? systemPrompt;
-  final String? railwayUrl; // Новое поле
+  final String? railwayUrl;
 
   // Поля из каталога
   final String? specialization;
@@ -96,7 +96,7 @@ class Business {
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
           : null,
-      telegramToken: json['telegram_token'] as String?,
+      telegramToken: json['bot_token'] as String?, // Исправленный маппинг
       openaiKey: json['openai_key'] as String?,
       telegramGroupId: json['telegram_group_id'] as String?,
       botBusinessId: json['bot_business_id'] as String?,
