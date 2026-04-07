@@ -15,8 +15,8 @@ class BusinessCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Статус: если botId не пуст — Активен, иначе — Настройка
-    final bool isConfigured = business.botId.isNotEmpty;
+    // Статус из модели бизнеса
+    final String status = business.status;
 
     // ЗАДАЧА 35: Увеличиваем высоту со 160 до 170
     const double cardHeight = 170.0;
@@ -48,8 +48,8 @@ class BusinessCard extends StatelessWidget {
                 bottomLeft: Radius.circular(16),
               ),
               child: SizedBox(
-                width: cardHeight, // Теперь 170
-                height: cardHeight, // Теперь 170
+                width: cardHeight,
+                height: cardHeight,
                 child: CachedNetworkImage(
                   imageUrl: business.imageUrl ?? '',
                   fit: BoxFit.cover,
@@ -112,24 +112,9 @@ class BusinessCard extends StatelessWidget {
                     // 3. Статус Row
                     Row(
                       children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isConfigured ? Colors.green : Colors.orange,
-                          ),
-                        ),
+                        _buildStatusDot(status),
                         const SizedBox(width: 6),
-                        Text(
-                          isConfigured ? 'Активен' : 'Настройка',
-                          style: TextStyle(
-                            color: isConfigured ? Colors.green : Colors.orange,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'Inter',
-                          ),
-                        ),
+                        _buildStatusText(status),
                       ],
                     ),
 
@@ -165,6 +150,67 @@ class BusinessCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatusDot(String status) {
+    Color color;
+    if (status == 'active') {
+      color = AppColors.success;
+    } else if (status == 'deploying') {
+      color = AppColors.warning;
+    } else if (status == 'error') {
+      color = AppColors.error;
+    } else {
+      color = AppColors.textSecondary; // paused и всё остальное
+    }
+
+    if (status == 'deploying') {
+      return SizedBox(
+        width: 8,
+        height: 8,
+        child: CircularProgressIndicator(
+          strokeWidth: 1.5,
+          color: color,
+        ),
+      );
+    }
+
+    return Container(
+      width: 8,
+      height: 8,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+    );
+  }
+
+  Widget _buildStatusText(String status) {
+    String label;
+    Color color;
+    if (status == 'active') {
+      label = 'Активен';
+      color = AppColors.success;
+    } else if (status == 'deploying') {
+      label = 'Деплой...';
+      color = AppColors.warning;
+    } else if (status == 'error') {
+      label = 'Ошибка';
+      color = AppColors.error;
+    } else if (status == 'paused') {
+      label = 'Пауза';
+      color = AppColors.textSecondary;
+    } else {
+      label = status;
+      color = AppColors.textSecondary;
+    }
+
+    return Text(
+      label,
+      style: TextStyle(
+        color: color,
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        fontFamily: 'Inter',
       ),
     );
   }

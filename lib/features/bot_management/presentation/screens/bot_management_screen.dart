@@ -1,11 +1,8 @@
-// lib/features/bot_management/presentation/screens/bot_management_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/constants/api_constants.dart';
 import '../../domain/business.dart';
 import '../../providers/bot_management_providers.dart';
 import '../../data/price_parser.dart';
@@ -51,8 +48,19 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
     setState(() => _isSaving = true);
 
     try {
-      // Генерируем индивидуальный URL бота на основе ID бизнеса
-      final botUrl = ApiConstants.getBotUrl(widget.business.id);
+      // Используем URL напрямую из модели
+      final botUrl = widget.business.railwayUrl ?? '';
+      if (botUrl.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('URL бота не найден. Свяжитесь с поддержкой.')),
+          );
+        }
+        setState(() => _isSaving = false);
+        return;
+      }
+
       final filePath = result.files.single.path!;
       final products = await PriceParser.parseFile(filePath);
 
@@ -201,12 +209,17 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
 
   /// Сохранение системного промпта
   Future<void> _handleSave() async {
+    final botUrl = widget.business.railwayUrl ?? '';
+    if (botUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('URL бота не найден. Свяжитесь с поддержкой.')),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
     try {
-      // Генерируем URL бота для конкретного бизнеса
-      final botUrl = ApiConstants.getBotUrl(widget.business.id);
-
-      // Важно: передаем botUrl в репозиторий промптов
       final bool success =
           await ref.read(botPromptRepositoryProvider).updateSystemPrompt(
                 botUrl: botUrl,

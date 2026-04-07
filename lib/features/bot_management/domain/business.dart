@@ -23,7 +23,8 @@ class Business {
   final String? telegramGroupId;
   final String? botBusinessId;
   final int? alertsTopicId;
-  final String? systemPrompt; // 1. Новое поле
+  final String? systemPrompt;
+  final String? railwayUrl; // Новое поле
 
   // Поля из каталога
   final String? specialization;
@@ -48,7 +49,8 @@ class Business {
     this.telegramGroupId,
     this.botBusinessId,
     this.alertsTopicId,
-    this.systemPrompt, // 2. В конструктор
+    this.systemPrompt,
+    this.railwayUrl,
     this.specialization,
     this.tier,
   });
@@ -99,7 +101,8 @@ class Business {
       telegramGroupId: json['telegram_group_id'] as String?,
       botBusinessId: json['bot_business_id'] as String?,
       alertsTopicId: json['alerts_topic_id'] as int?,
-      systemPrompt: json['system_prompt'] as String?, // 3. В fromJson
+      systemPrompt: json['system_prompt'] as String?,
+      railwayUrl: json['railway_url'] as String?,
       specialization: json['specialization'] as String?,
       tier: json['tier'] as String?,
     );
@@ -124,7 +127,8 @@ class Business {
     String? telegramGroupId,
     String? botBusinessId,
     int? alertsTopicId,
-    String? systemPrompt, // 4. В copyWith
+    String? systemPrompt,
+    String? railwayUrl,
     String? specialization,
     String? tier,
   }) {
@@ -147,7 +151,8 @@ class Business {
       telegramGroupId: telegramGroupId ?? this.telegramGroupId,
       botBusinessId: botBusinessId ?? this.botBusinessId,
       alertsTopicId: alertsTopicId ?? this.alertsTopicId,
-      systemPrompt: systemPrompt ?? this.systemPrompt, // 4. В return
+      systemPrompt: systemPrompt ?? this.systemPrompt,
+      railwayUrl: railwayUrl ?? this.railwayUrl,
       specialization: specialization ?? this.specialization,
       tier: tier ?? this.tier,
     );

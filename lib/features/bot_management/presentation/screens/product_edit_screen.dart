@@ -1,10 +1,7 @@
-// lib/features/bot_management/presentation/screens/product_edit_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/constants/api_constants.dart'; // Добавлен импорт
 import '../../domain/business.dart';
 import '../../providers/bot_management_providers.dart';
 
@@ -59,12 +56,16 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
   Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final botUrl = widget.business.railwayUrl ?? '';
+    if (botUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('URL бота не найден.')),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
 
-    // 1. Генерируем динамический URL бота
-    final botUrl = ApiConstants.getBotUrl(widget.business.id);
-
-    // 2. Собираем объект товара для API
     final productData = {
       if (isEditing) 'id': widget.product!['id'],
       'name': _nameController.text.trim(),
@@ -74,7 +75,6 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     };
 
     try {
-      // 3. Вызываем репозиторий с обязательным параметром botUrl
       final success = await ref.read(priceListRepositoryProvider).updateProduct(
             botUrl: botUrl,
             telegramUsername: widget.business.telegramUsername,
@@ -129,10 +129,11 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
 
     if (confirm != true) return;
 
+    final botUrl = widget.business.railwayUrl ?? '';
+    if (botUrl.isEmpty) return;
+
     setState(() => _isSaving = true);
 
-    // Генерируем URL для удаления
-    final botUrl = ApiConstants.getBotUrl(widget.business.id);
     final productId =
         (widget.product!['product_id'] ?? widget.product!['id']).toString();
 

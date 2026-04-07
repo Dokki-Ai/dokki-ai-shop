@@ -1,12 +1,9 @@
-// lib/features/bot_management/presentation/screens/price_list_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/constants/api_constants.dart';
 import '../../providers/bot_management_providers.dart';
 import '../../domain/business.dart';
 
@@ -39,8 +36,13 @@ class _PriceListScreenState extends ConsumerState<PriceListScreen> {
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      // Генерируем URL индивидуального инстанса бота
-      final botUrl = ApiConstants.getBotUrl(widget.business.id);
+      // Берем URL инстанса напрямую из модели бизнеса
+      final botUrl = widget.business.railwayUrl ?? '';
+
+      if (botUrl.isEmpty) {
+        setState(() => _isLoading = false);
+        return;
+      }
 
       final data = await ref.read(priceListRepositoryProvider).getProducts(
             botUrl: botUrl,
@@ -213,7 +215,7 @@ class _PriceDataSource extends DataTableSource {
     if (index >= products.length) return null;
     final product = products[index];
     final productId = (product['product_id'] ?? product['id']).toString();
-    final botUrl = ApiConstants.getBotUrl(business.id);
+    final botUrl = business.railwayUrl ?? '';
 
     return DataRow(cells: [
       DataCell(Text(product['name'] ?? '',
