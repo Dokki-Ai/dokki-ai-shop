@@ -49,3 +49,5 @@ lib/core/env/env.g.dart
 *.g.dart
 .vercel
 .env*.local
+flutter/
+flutter/
