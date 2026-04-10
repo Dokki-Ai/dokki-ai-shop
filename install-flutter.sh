@@ -18,7 +18,7 @@ export DEPLOY_SERVICE_URL=$DEPLOY_SERVICE_URL
 ./flutter/bin/flutter pub get
 
 # 5. ГЕНЕРАЦИЯ КОДА (Riverpod, Envied и др.)
-./flutter/bin/flutter pub run build_runner build --delete-conflicting-outputs
+# ./flutter/bin/flutter pub run build_runner build --delete-conflicting-outputs
 
 # 6. ФИНАЛЬНАЯ СБОРКА
 ./flutter/bin/flutter build web --release
