@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -165,9 +166,26 @@ final routerProvider = Provider<GoRouter>((ref) {
 });
 
 class _AuthNotifier extends ChangeNotifier {
+  StreamSubscription<AuthState>? _subscription;
+
   _AuthNotifier(SupabaseClient supabase) {
-    supabase.auth.onAuthStateChange.listen((data) {
-      notifyListeners();
-    });
+    try {
+      _subscription = supabase.auth.onAuthStateChange.listen(
+        (data) {
+          notifyListeners();
+        },
+        onError: (e) {
+          debugPrint('❌ _AuthNotifier stream error: $e');
+        },
+      );
+    } catch (e) {
+      debugPrint('❌ _AuthNotifier init error: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
   }
 }
