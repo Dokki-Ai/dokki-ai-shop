@@ -1,7 +1,7 @@
 class ApiConstants {
-  /// URL оркестратора деплоя на Railway
+  /// URL оркестратора деплоя на Sevalla
   static const String deployServiceUrl =
-      'https://dokki-deploy-service-production-a748.up.railway.app';
+      'https://deploy-service-vxjp9.sevalla.app';
 
   /// Конечная точка для деплоя нового бота
   static String get deployUrl => '$deployServiceUrl/deploy';
