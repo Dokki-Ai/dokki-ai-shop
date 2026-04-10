@@ -8,13 +8,17 @@ fi
 # 2. Добавляем в PATH для текущей сессии
 export PATH="$PATH:`pwd`/flutter/bin"
 
-# 3. Настройка и получение зависимостей
+# 3. Экспортируем переменные для build_runner (чтобы Envied их увидел)
+export SUPABASE_URL=$SUPABASE_URL
+export SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+export DEPLOY_SERVICE_URL=$DEPLOY_SERVICE_URL
+
+# 4. Настройка и получение зависимостей
 ./flutter/bin/flutter config --enable-web
 ./flutter/bin/flutter pub get
 
-# 4. ГЕНЕРАЦИЯ КОДА (Riverpod, Drift, JSON Serializable)
-# Это создаст все необходимые .g.dart файлы перед сборкой
+# 5. ГЕНЕРАЦИЯ КОДА (Riverpod, Envied и др.)
 ./flutter/bin/flutter pub run build_runner build --delete-conflicting-outputs
 
-# 5. ФИНАЛЬНАЯ СБОРКА
+# 6. ФИНАЛЬНАЯ СБОРКА
 ./flutter/bin/flutter build web --release
