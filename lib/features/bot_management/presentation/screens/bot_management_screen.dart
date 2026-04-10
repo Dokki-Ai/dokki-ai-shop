@@ -83,7 +83,9 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
 
       if (response.statusCode == 200 && data['success'] == true) {
         final telegramUsername = data['telegramUsername'] as String? ?? '';
-        final railwayUrl = data['railwayUrl'] as String?;
+
+        // ИСПРАВЛЕНО: берем 'url' из ответа нового оркестратора
+        final serviceUrl = data['url'] as String?;
 
         await ref.read(businessRepositoryProvider).connectBot(
               botId: widget.business.botId,
@@ -93,7 +95,8 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
               telegramUsername: telegramUsername,
               businessName: _businessNameController.text.trim(),
               alertsTopicId: 6,
-              railwayUrl: railwayUrl,
+              // ИСПРАВЛЕНО: передаем serviceUrl в параметр railwayUrl
+              railwayUrl: serviceUrl,
             );
 
         if (mounted) {
@@ -500,8 +503,7 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
       body: SafeArea(
         child: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
-          child: widget.business.status ==
-                  'setup' // ИСПРАВЛЕНО: ориентируемся на статус
+          child: widget.business.status == 'setup'
               ? _buildSetupView()
               : SingleChildScrollView(
                   keyboardDismissBehavior:
