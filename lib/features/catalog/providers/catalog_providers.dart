@@ -7,11 +7,18 @@ import '../domain/bot.dart';
 final allBotsProvider = FutureProvider<List<Bot>>((ref) async {
   final supabase = ref.read(supabaseClientProvider);
 
+  // DEBUG: Проверяем состояние auth
+  debugPrint('🔐 AUTH CHECK:');
+  debugPrint('   currentUser: ${supabase.auth.currentUser?.id ?? 'NULL'}');
+  debugPrint('   currentSession: ${supabase.auth.currentSession != null}');
+
   try {
+    debugPrint('📡 Запрос к bot_catalog...');
     final response = await supabase
         .from('bot_catalog')
         .select('*')
         .order('price_monthly', ascending: true);
+    debugPrint('✅ Ответ получен');
 
     final List data = response as List;
 
@@ -22,9 +29,10 @@ final allBotsProvider = FutureProvider<List<Bot>>((ref) async {
     }
 
     return data.map((json) => Bot.fromJson(json)).toList();
-  } catch (e) {
-    // ИСПРАВЛЕНО: Убрана неиспользуемая переменная stack
+  } catch (e, stack) {
     debugPrint('❌ ОШИБКА SUPABASE: $e');
+    debugPrint('📚 СТЕКТРЕЙС:');
+    debugPrint(stack.toString());
     rethrow;
   }
 });
