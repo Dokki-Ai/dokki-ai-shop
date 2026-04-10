@@ -77,7 +77,7 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
                   : 'Привет! Чем могу помочь?',
             }),
           )
-          .timeout(const Duration(minutes: 3));
+          .timeout(const Duration(minutes: 5));
 
       final data = jsonDecode(response.body);
 

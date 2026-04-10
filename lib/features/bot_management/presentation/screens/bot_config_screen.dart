@@ -83,7 +83,7 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
               'welcomeMessage': _welcomeController.text.trim(),
             }),
           )
-          .timeout(const Duration(minutes: 3));
+          .timeout(const Duration(minutes: 5));
 
       final data = jsonDecode(response.body);
 
