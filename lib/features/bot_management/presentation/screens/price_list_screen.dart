@@ -36,8 +36,8 @@ class _PriceListScreenState extends ConsumerState<PriceListScreen> {
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      // Берем URL инстанса напрямую из модели бизнеса
-      final botUrl = widget.business.railwayUrl ?? '';
+      // ИСПРАВЛЕНО: Берем URL инстанса напрямую из модели бизнеса через serviceUrl
+      final botUrl = widget.business.serviceUrl ?? '';
 
       if (botUrl.isEmpty) {
         setState(() => _isLoading = false);
@@ -215,7 +215,8 @@ class _PriceDataSource extends DataTableSource {
     if (index >= products.length) return null;
     final product = products[index];
     final productId = (product['product_id'] ?? product['id']).toString();
-    final botUrl = business.railwayUrl ?? '';
+    // ИСПРАВЛЕНО: railwayUrl -> serviceUrl
+    final botUrl = business.serviceUrl ?? '';
 
     return DataRow(cells: [
       DataCell(Text(product['name'] ?? '',

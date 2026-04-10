@@ -17,7 +17,7 @@ class BusinessRepositoryImpl implements BusinessRepository {
     required String businessName,
     String? openaiKey,
     int? alertsTopicId,
-    String? railwayUrl,
+    String? serviceUrl,
   }) async {
     final userId = _client.auth.currentUser!.id;
 
@@ -37,7 +37,7 @@ class BusinessRepositoryImpl implements BusinessRepository {
               'alerts_topic_id': alertsTopicId,
               'status': 'active',
               'updated_at': DateTime.now().toIso8601String(),
-              if (railwayUrl != null) 'railway_url': railwayUrl,
+              if (serviceUrl != null) 'service_url': serviceUrl,
             },
             onConflict: 'user_id,bot_id',
           )

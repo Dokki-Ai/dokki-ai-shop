@@ -89,7 +89,9 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
 
       if (response.statusCode == 200 && data['success'] == true) {
         final telegramUsername = data['telegramUsername'] as String? ?? '';
-        final railwayUrl = data['railwayUrl'] as String?;
+
+        // ИСПРАВЛЕНО: Берем 'url' из ответа и называем переменную serviceUrl
+        final serviceUrl = data['url'] as String?;
 
         await ref.read(businessRepositoryProvider).connectBot(
               botId: widget.botId,
@@ -99,7 +101,8 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
               telegramUsername: telegramUsername,
               businessName: _businessNameController.text.trim(),
               alertsTopicId: 6,
-              railwayUrl: railwayUrl,
+              // ИСПРАВЛЕНО: Переименовано в serviceUrl
+              serviceUrl: serviceUrl,
             );
 
         if (mounted) _showSuccessDialog();

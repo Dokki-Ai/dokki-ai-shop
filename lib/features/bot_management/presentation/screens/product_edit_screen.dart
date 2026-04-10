@@ -56,7 +56,8 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
   Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final botUrl = widget.business.railwayUrl ?? '';
+    // ИСПРАВЛЕНО: railwayUrl -> serviceUrl
+    final botUrl = widget.business.serviceUrl ?? '';
     if (botUrl.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('URL бота не найден.')),
@@ -89,7 +90,8 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
         );
         context.pop(true);
       } else if (mounted) {
-        throw Exception('Ошибка при сохранении на сервере Railway');
+        // Убрано упоминание Railway
+        throw Exception('Ошибка при сохранении на сервере');
       }
     } catch (e) {
       debugPrint('Error saving product: $e');
@@ -129,7 +131,8 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
 
     if (confirm != true) return;
 
-    final botUrl = widget.business.railwayUrl ?? '';
+    // ИСПРАВЛЕНО: railwayUrl -> serviceUrl
+    final botUrl = widget.business.serviceUrl ?? '';
     if (botUrl.isEmpty) return;
 
     setState(() => _isSaving = true);

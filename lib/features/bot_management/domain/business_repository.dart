@@ -10,7 +10,7 @@ abstract class BusinessRepository {
     required String businessName,
     String? openaiKey,
     int? alertsTopicId,
-    String? railwayUrl,
+    String? serviceUrl, // Заменено с railwayUrl
   });
 
   Future<List<Business>> getConnectedBots();

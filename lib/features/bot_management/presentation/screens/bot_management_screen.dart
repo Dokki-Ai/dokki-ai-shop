@@ -95,8 +95,8 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
               telegramUsername: telegramUsername,
               businessName: _businessNameController.text.trim(),
               alertsTopicId: 6,
-              // ИСПРАВЛЕНО: передаем serviceUrl в параметр railwayUrl
-              railwayUrl: serviceUrl,
+              // ИСПРАВЛЕНО: передаем serviceUrl в параметр serviceUrl
+              serviceUrl: serviceUrl,
             );
 
         if (mounted) {
@@ -280,7 +280,7 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
 
     try {
       // Используем URL напрямую из модели
-      final botUrl = widget.business.railwayUrl ?? '';
+      final botUrl = widget.business.serviceUrl ?? '';
       if (botUrl.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -440,7 +440,7 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
 
   /// Сохранение системного промпта
   Future<void> _handleSave() async {
-    final botUrl = widget.business.railwayUrl ?? '';
+    final botUrl = widget.business.serviceUrl ?? '';
     if (botUrl.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
