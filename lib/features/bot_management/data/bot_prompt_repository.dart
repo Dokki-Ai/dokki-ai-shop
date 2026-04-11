@@ -1,43 +1,41 @@
-// lib/features/bot_management/data/bot_prompt_repository.dart
-
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class BotPromptRepository {
-  /// Отправляет POST запрос на индивидуальный инстанс бота для обновления системного промпта.
-  /// [botUrl] — базовый URL бота (например, https://dokki-abc-production.up.railway.app).
-  /// [telegramUsername] — юзернейм бота для идентификации в базе бота.
-  /// [systemPrompt] — новый текст инструкций.
+  /// Обновление системного промпта (инструкций ИИ)
+  /// [botUrl] — URL инстанса бота
+  /// [businessId] — UUID бизнеса (botId)
   Future<bool> updateSystemPrompt({
     required String botUrl,
-    required String telegramUsername,
+    required String businessId,
     required String systemPrompt,
   }) async {
-    // Убеждаемся, что юзернейм начинается с @ для корректной работы API бота
-    final String formattedUsername = telegramUsername.startsWith('@')
-        ? telegramUsername
-        : '@$telegramUsername';
-
     try {
-      // Формируем URL к новому эндпоинту конфигурации
-      final url = Uri.parse('$botUrl/api/config/system-prompt');
-
       final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('$botUrl/api/config/prompt/$businessId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: jsonEncode({
-          'telegram_username': formattedUsername,
-          'system_prompt': systemPrompt.trim(),
+          'systemPrompt': systemPrompt,
         }),
       );
 
-      // Возвращаем true только при успешном статус-коде 200
-      return response.statusCode == 200;
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['success'] == true;
+      } else {
+        debugPrint('Update Prompt Error: Status ${response.statusCode}');
+        return false;
+      }
     } catch (e) {
-      // Используем debugPrint вместо print, чтобы линтер был доволен
-      debugPrint('Error updating system prompt: $e');
+      debugPrint('Update Prompt Exception: $e');
       return false;
     }
   }
 }
+
+final botPromptRepositoryProvider = Provider((ref) => BotPromptRepository());

@@ -31,12 +31,11 @@ class _PriceListScreenState extends ConsumerState<PriceListScreen> {
     _loadProducts();
   }
 
-  /// Загрузка списка товаров с динамическим URL бота
+  /// Загрузка списка товаров
   Future<void> _loadProducts() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      // ИСПРАВЛЕНО: Берем URL инстанса напрямую из модели бизнеса через serviceUrl
       final botUrl = widget.business.serviceUrl ?? '';
 
       if (botUrl.isEmpty) {
@@ -44,9 +43,10 @@ class _PriceListScreenState extends ConsumerState<PriceListScreen> {
         return;
       }
 
+      // ИСПРАВЛЕНО: businessId вместо telegramUsername
       final data = await ref.read(priceListRepositoryProvider).getProducts(
             botUrl: botUrl,
-            telegramUsername: widget.business.telegramUsername,
+            businessId: widget.business.botId,
           );
 
       if (mounted) {
@@ -214,8 +214,9 @@ class _PriceDataSource extends DataTableSource {
   DataRow? getRow(int index) {
     if (index >= products.length) return null;
     final product = products[index];
-    final productId = (product['product_id'] ?? product['id']).toString();
-    // ИСПРАВЛЕНО: railwayUrl -> serviceUrl
+
+    // ИСПРАВЛЕНО: получаем SKU из данных товара
+    final String sku = (product['sku'] ?? '').toString();
     final botUrl = business.serviceUrl ?? '';
 
     return DataRow(cells: [
@@ -246,10 +247,11 @@ class _PriceDataSource extends DataTableSource {
               onPressed: () async {
                 final confirmed = await _showDeleteDialog();
                 if (confirmed) {
+                  // ИСПРАВЛЕНО: businessId вместо telegramUsername, sku вместо productId
                   await ref.read(priceListRepositoryProvider).deleteProduct(
                         botUrl: botUrl,
-                        telegramUsername: business.telegramUsername,
-                        productId: productId,
+                        businessId: business.botId,
+                        sku: sku,
                       );
                   onRefresh();
                 }

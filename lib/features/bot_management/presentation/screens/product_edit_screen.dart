@@ -56,7 +56,6 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
   Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // ИСПРАВЛЕНО: railwayUrl -> serviceUrl
     final botUrl = widget.business.serviceUrl ?? '';
     if (botUrl.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -68,7 +67,8 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     setState(() => _isSaving = true);
 
     final productData = {
-      if (isEditing) 'id': widget.product!['id'],
+      // ИСПРАВЛЕНО: используем sku для корректного UPSERT на бэкенде
+      if (isEditing) 'sku': widget.product!['sku'],
       'name': _nameController.text.trim(),
       'price': double.tryParse(_priceController.text) ?? 0.0,
       'category': _categoryController.text.trim(),
@@ -76,9 +76,10 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     };
 
     try {
+      // ИСПРАВЛЕНО: businessId вместо telegramUsername
       final success = await ref.read(priceListRepositoryProvider).updateProduct(
             botUrl: botUrl,
-            telegramUsername: widget.business.telegramUsername,
+            businessId: widget.business.botId,
             product: productData,
           );
 
@@ -90,7 +91,6 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
         );
         context.pop(true);
       } else if (mounted) {
-        // Убрано упоминание Railway
         throw Exception('Ошибка при сохранении на сервере');
       }
     } catch (e) {
@@ -131,20 +131,20 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
 
     if (confirm != true) return;
 
-    // ИСПРАВЛЕНО: railwayUrl -> serviceUrl
     final botUrl = widget.business.serviceUrl ?? '';
     if (botUrl.isEmpty) return;
 
     setState(() => _isSaving = true);
 
-    final productId =
-        (widget.product!['product_id'] ?? widget.product!['id']).toString();
+    // ИСПРАВЛЕНО: получаем sku вместо id
+    final String sku = (widget.product!['sku'] ?? '').toString();
 
     try {
+      // ИСПРАВЛЕНО: businessId вместо telegramUsername, sku вместо productId
       final success = await ref.read(priceListRepositoryProvider).deleteProduct(
             botUrl: botUrl,
-            telegramUsername: widget.business.telegramUsername,
-            productId: productId,
+            businessId: widget.business.botId,
+            sku: sku,
           );
 
       if (success && mounted) {

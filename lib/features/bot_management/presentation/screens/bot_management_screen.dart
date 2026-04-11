@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -9,7 +8,6 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../domain/business.dart';
 import '../../providers/bot_management_providers.dart';
-import '../../data/price_parser.dart';
 
 class BotManagementScreen extends ConsumerStatefulWidget {
   final Business business;
@@ -57,6 +55,21 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
     super.dispose();
   }
 
+  /// Геттер для динамического заголовка секции данных
+  String get _dataTitle {
+    switch (widget.business.botCategory) {
+      case 'sales':
+        return 'Прайс-лист';
+      case 'support':
+        return 'База знаний';
+      case 'admin':
+        return 'Расписание';
+      default:
+        return 'Данные';
+    }
+  }
+
+  /// Метод развертывания бота (Оркестратор)
   Future<void> _deployBot() async {
     if (_botTokenController.text.trim().isEmpty) return;
 
@@ -83,8 +96,6 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
 
       if (response.statusCode == 200 && data['success'] == true) {
         final telegramUsername = data['telegramUsername'] as String? ?? '';
-
-        // ИСПРАВЛЕНО: берем 'url' из ответа нового оркестратора
         final serviceUrl = data['url'] as String?;
 
         await ref.read(businessRepositoryProvider).connectBot(
@@ -95,7 +106,6 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
               telegramUsername: telegramUsername,
               businessName: _businessNameController.text.trim(),
               alertsTopicId: 6,
-              // ИСПРАВЛЕНО: передаем serviceUrl в параметр serviceUrl
               serviceUrl: serviceUrl,
             );
 
@@ -125,6 +135,7 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
     }
   }
 
+  /// Вид первоначальной настройки
   Widget _buildSetupView() {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -269,182 +280,12 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
     );
   }
 
-  /// Метод выбора и обработки файла (Загрузка прайс-листа)
-  Future<void> _pickPriceFile() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.any);
-    if (result == null || result.files.single.path == null) {
-      return;
-    }
-
-    setState(() => _isSaving = true);
-
-    try {
-      // Используем URL напрямую из модели
-      final botUrl = widget.business.serviceUrl ?? '';
-      if (botUrl.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('URL бота не найден. Свяжитесь с поддержкой.')),
-          );
-        }
-        setState(() => _isSaving = false);
-        return;
-      }
-
-      final filePath = result.files.single.path!;
-      final products = await PriceParser.parseFile(filePath);
-
-      if (products.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Файл пуст или не распознан')),
-          );
-        }
-        return;
-      }
-
-      // 1. Загружаем текущий прайс для поиска дубликатов
-      final existing = await ref.read(priceListRepositoryProvider).getProducts(
-            botUrl: botUrl,
-            telegramUsername: widget.business.telegramUsername,
-          );
-
-      final existingNames = existing
-          .map((p) => p['name'].toString().toLowerCase().trim())
-          .toSet();
-
-      final duplicates = products.where((p) {
-        return existingNames
-            .contains(p['name'].toString().toLowerCase().trim());
-      }).length;
-
-      if (!mounted) return;
-
-      // 2. Диалог выбора режима импорта
-      final mode = await showDialog<String>(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          backgroundColor: AppColors.card,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(
-            'Загрузка ${products.length} товаров',
-            style: const TextStyle(color: AppColors.textPrimary),
-          ),
-          content: Text(
-            duplicates > 0
-                ? 'Найдено $duplicates совпадений. Выберите действие:'
-                : 'Совпадений не найдено. Выберите действие:',
-            style: const TextStyle(color: AppColors.textSecondary),
-          ),
-          actions: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton(
-                    onPressed: () => Navigator.pop(context, 'replace'),
-                    child: const Text(
-                      'УДАЛИТЬ ВСЁ И ЗАГРУЗИТЬ ЗАНОВО',
-                      style: TextStyle(
-                          color: AppColors.error, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton(
-                    onPressed: () => Navigator.pop(context, 'merge'),
-                    child: const Text(
-                      'ДОБАВИТЬ ТОЛЬКО НОВЫЕ',
-                      style: TextStyle(
-                          color: AppColors.accent, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton(
-                    onPressed: () => Navigator.pop(context, null),
-                    child: const Text(
-                      'ОТМЕНА',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-
-      if (mode == null) return;
-
-      // 3. Выполнение импорта через репозиторий
-      bool success = false;
-
-      if (mode == 'replace') {
-        success = await ref.read(priceListRepositoryProvider).uploadPriceList(
-              botUrl: botUrl,
-              telegramUsername: widget.business.telegramUsername,
-              products: products,
-            );
-      } else if (mode == 'merge') {
-        final newProducts = products.where((p) {
-          return !existingNames
-              .contains(p['name'].toString().toLowerCase().trim());
-        }).toList();
-
-        if (newProducts.isEmpty) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Все товары уже есть в базе')),
-            );
-          }
-          return;
-        }
-
-        success = await ref.read(priceListRepositoryProvider).addProducts(
-              botUrl: botUrl,
-              telegramUsername: widget.business.telegramUsername,
-              products: newProducts,
-            );
-      }
-
-      if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Прайс-лист успешно обновлен'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка импорта: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
-      }
-    }
-  }
-
   /// Сохранение системного промпта
   Future<void> _handleSave() async {
     final botUrl = widget.business.serviceUrl ?? '';
     if (botUrl.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('URL бота не найден. Свяжитесь с поддержкой.')),
+        const SnackBar(content: Text('URL бота не найден.')),
       );
       return;
     }
@@ -454,7 +295,7 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
       final bool success =
           await ref.read(botPromptRepositoryProvider).updateSystemPrompt(
                 botUrl: botUrl,
-                telegramUsername: widget.business.telegramUsername,
+                businessId: widget.business.botId,
                 systemPrompt: _promptController.text.trim(),
               );
 
@@ -560,24 +401,28 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
                         ),
                       ),
                       const SizedBox(height: 28),
-                      const Text('Прайс-лист',
-                          style: TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 16),
-                      _buildMenuButton(
-                        icon: Icons.list_alt_rounded,
-                        label: 'Управление товарами',
-                        onTap: () =>
-                            context.push('/price-list', extra: widget.business),
+                      Text(
+                        _dataTitle,
+                        style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
+                      if (widget.business.botCategory == 'sales') ...[
+                        _buildMenuButton(
+                          icon: Icons.list_alt_rounded,
+                          label: 'Управление товарами',
+                          onTap: () => context.push('/price-list',
+                              extra: widget.business),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       _buildMenuButton(
                         icon: Icons.upload_file_rounded,
-                        label:
-                            _isSaving ? 'Загрузка...' : 'Загрузить прайс-лист',
-                        onTap: _isSaving ? null : _pickPriceFile,
+                        label: 'Загрузить ${_dataTitle.toLowerCase()}',
+                        onTap: () =>
+                            context.push('/upload', extra: widget.business),
                       ),
                       const SizedBox(height: 20),
                     ],
@@ -597,7 +442,9 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
         decoration: BoxDecoration(
           color: AppColors.card,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+          border: Border.all(
+            color: AppColors.border.withValues(alpha: 0.5),
+          ),
         ),
         child: Row(
           children: [

@@ -17,6 +17,7 @@ import '../../features/bot_management/presentation/screens/bot_management_screen
 import '../../features/bot_management/presentation/screens/bot_config_screen.dart';
 import '../../features/bot_management/presentation/screens/price_list_screen.dart';
 import '../../features/bot_management/presentation/screens/product_edit_screen.dart';
+import '../../features/bot_management/presentation/screens/upload_screen.dart'; // 1. ИСПРАВЛЕНО: Добавлен импорт
 import '../../features/catalog/presentation/screens/bot_detail_screen.dart';
 
 // Импорты домена
@@ -42,6 +43,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = session != null;
       final location = state.matchedLocation;
 
+      // 3. ИСПРАВЛЕНО: Добавлены /upload и /product-edit в защищенные маршруты
       final isProtectedRoute = location.startsWith('/profile') ||
           (location.startsWith('/payment') &&
               !location.startsWith('/payment-success') &&
@@ -49,6 +51,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           location.startsWith('/bot-config') ||
           location.startsWith('/bot-management') ||
           location.startsWith('/price-list') ||
+          location.startsWith('/upload') ||
           location.startsWith('/product-edit');
 
       final isAuthRoute = location == '/auth';
@@ -160,6 +163,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             product: data['product'] as Map<String, dynamic>?,
           );
         },
+      ),
+
+      // 2. ИСПРАВЛЕНО: Добавлен маршрут /upload
+      GoRoute(
+        path: '/upload',
+        builder: (context, state) => UploadScreen(
+          business: state.extra as Business,
+        ),
       ),
     ],
   );

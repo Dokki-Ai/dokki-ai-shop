@@ -1,23 +1,20 @@
-// lib/features/bot_management/data/price_list_repository.dart
-
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class PriceListRepository {
-  /// Массовая загрузка/перезапись (DELETE + INSERT)
-  /// [botUrl] — это URL конкретного бота в Railway (напр. https://dokki-abc-production.up.railway.app)
+  /// Массовая загрузка/перезапись (PUT)
+  /// [botUrl] — это URL конкретного бота (напр. https://dokki-instance.sevalla.app)
   Future<bool> uploadPriceList({
     required String botUrl,
-    required String telegramUsername,
+    required String businessId,
     required List<Map<String, dynamic>> products,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$botUrl/api/prices/upload'),
+      final response = await http.put(
+        Uri.parse('$botUrl/api/prices/$businessId'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'telegram_username': telegramUsername,
           'products': products,
         }),
       );
@@ -28,38 +25,17 @@ class PriceListRepository {
     }
   }
 
-  /// Добавление товаров без удаления существующих
-  Future<bool> addProducts({
-    required String botUrl,
-    required String telegramUsername,
-    required List<Map<String, dynamic>> products,
-  }) async {
-    try {
-      for (final product in products) {
-        await updateProduct(
-          botUrl: botUrl,
-          telegramUsername: telegramUsername,
-          product: product,
-        );
-      }
-      return true;
-    } catch (e) {
-      debugPrint('Add Products Error: $e');
-      return false;
-    }
-  }
-
   /// Получение списка товаров
   Future<List<Map<String, dynamic>>> getProducts({
     required String botUrl,
-    required String telegramUsername,
+    required String businessId,
     String? searchQuery,
     int limit = 50,
     int offset = 0,
   }) async {
     try {
       final response = await http.get(
-        Uri.parse('$botUrl/api/prices/by-username/$telegramUsername'),
+        Uri.parse('$botUrl/api/prices/$businessId'),
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -83,19 +59,18 @@ class PriceListRepository {
     }
   }
 
-  /// Создание/Обновление одной позиции
+  /// Создание/Обновление одной позиции (UPSERT)
   Future<bool> updateProduct({
     required String botUrl,
-    required String telegramUsername,
+    required String businessId,
     required Map<String, dynamic> product,
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('$botUrl/api/prices/update-single'),
+        Uri.parse('$botUrl/api/prices/$businessId'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'telegram_username': telegramUsername,
-          'product': product,
+          'products': [product],
         }),
       );
       return response.statusCode == 200 || response.statusCode == 201;
@@ -105,24 +80,35 @@ class PriceListRepository {
     }
   }
 
-  /// Удаление одной позиции
+  /// Удаление одной позиции по SKU
   Future<bool> deleteProduct({
     required String botUrl,
-    required String telegramUsername,
-    required String productId,
+    required String businessId,
+    required String sku,
   }) async {
     try {
       final response = await http.delete(
-        Uri.parse('$botUrl/api/prices/delete-single'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'telegram_username': telegramUsername,
-          'product_id': productId,
-        }),
+        Uri.parse('$botUrl/api/prices/$businessId/$sku'),
       );
       return response.statusCode == 200;
     } catch (e) {
       debugPrint('Delete Product Error: $e');
+      return false;
+    }
+  }
+
+  /// Полная очистка прайс-листа бизнеса
+  Future<bool> deleteAllProducts({
+    required String botUrl,
+    required String businessId,
+  }) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$botUrl/api/prices/$businessId'),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Delete All Products Error: $e');
       return false;
     }
   }
