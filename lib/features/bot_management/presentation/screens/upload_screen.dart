@@ -43,7 +43,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
 
   /// Выбор файла с фильтрацией по типу загрузки (строгие форматы)
   Future<void> _pickFile() async {
-    // ОБНОВЛЕНО: Строгое разграничение согласно задаче
+    // Строгое разграничение форматов: прайсы — таблицы, знания — текст/pdf
     final allowedExtensions =
         widget.uploadType == 'prices' ? ['xlsx', 'csv'] : ['txt', 'pdf'];
 
@@ -251,24 +251,13 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
             const SizedBox(height: 12),
             _buildDocumentsPlaceholder(),
             const SizedBox(height: 32),
-            if (_pickedFile == null) ...[
+            if (_pickedFile == null)
               _buildActionButton(
                 label: 'ВЫБРАТЬ ФАЙЛ',
                 icon: Icons.attach_file,
                 onPressed: _pickFile,
-              ),
-              const SizedBox(height: 12),
-              // ОБНОВЛЕНО: Подсказка форматов под кнопкой
-              Center(
-                child: Text(
-                  widget.uploadType == 'prices'
-                      ? 'Поддерживаемые форматы: XLSX, CSV'
-                      : 'Поддерживаемые форматы: TXT, PDF',
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 12),
-                ),
-              ),
-            ] else
+              )
+            else
               _buildUploadForm(),
           ],
         ),

@@ -55,7 +55,6 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
     super.dispose();
   }
 
-  /// Сохранение системного промпта
   Future<bool> _handleSave() async {
     final botUrl = widget.business.serviceUrl ?? '';
     if (botUrl.isEmpty) {
@@ -88,7 +87,6 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
     }
   }
 
-  /// Открытие модального окна с инструкциями
   void _showInstructionsSheet() {
     showModalBottomSheet(
       context: context,
@@ -199,7 +197,6 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
     );
   }
 
-  /// Метод развертывания бота (Оркестратор)
   Future<void> _deployBot() async {
     if (_botTokenController.text.trim().isEmpty) return;
 
@@ -288,14 +285,11 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
         child: widget.business.status == 'setup'
             ? _buildSetupView()
             : SingleChildScrollView(
-                // УБРАЛИ Center, чтобы список начинался сверху
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 20), // Отступ от шапки
-
-                    // ГРУППА 1: ИНСТРУКЦИИ
+                    const SizedBox(height: 20),
                     _buildSectionHeader('Инструкции для AI бота'),
                     const SizedBox(height: 12),
                     _buildMenuButton(
@@ -303,10 +297,7 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
                       label: 'Настроить инструкции',
                       onTap: _showInstructionsSheet,
                     ),
-
                     const SizedBox(height: 32),
-
-                    // ГРУППА 2: ПРАЙС-ЛИСТ
                     _buildSectionHeader('Прайс-лист'),
                     const SizedBox(height: 12),
                     _buildMenuButton(
@@ -320,16 +311,14 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
                     _buildMenuButton(
                       icon: Icons.price_change_rounded,
                       label: 'Загрузить прайс-лист',
+                      subtitle: 'XLSX, CSV', // Добавлен subtitle
                       enabled: widget.business.botCategory == 'sales',
                       onTap: () => context.push('/upload', extra: {
                         'business': widget.business,
                         'uploadType': 'prices'
                       }),
                     ),
-
                     const SizedBox(height: 32),
-
-                    // ГРУППА 3: БАЗА ЗНАНИЙ
                     _buildSectionHeader('База знаний'),
                     const SizedBox(height: 12),
                     _buildMenuButton(
@@ -343,12 +332,13 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
                     _buildMenuButton(
                       icon: Icons.auto_stories_rounded,
                       label: 'Загрузить базу знаний',
+                      subtitle: 'TXT, PDF', // Добавлен subtitle
                       onTap: () => context.push('/upload', extra: {
                         'business': widget.business,
                         'uploadType': 'knowledge'
                       }),
                     ),
-                    const SizedBox(height: 40), // Запас снизу для скролла
+                    const SizedBox(height: 40),
                   ],
                 ),
               ),
@@ -356,7 +346,6 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
     );
   }
 
-  /// Вспомогательный метод для заголовков секций
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(left: 4.0),
@@ -375,6 +364,7 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
   Widget _buildMenuButton({
     required IconData icon,
     required String label,
+    String? subtitle, // Новый параметр
     VoidCallback? onTap,
     bool enabled = true,
   }) {
@@ -418,6 +408,14 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
                       'Недоступно для этого типа бота',
                       style: TextStyle(
                           color: AppColors.textSecondary, fontSize: 11),
+                    )
+                  else if (subtitle != null) // Отображение подписи
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                      ),
                     ),
                 ],
               ),
