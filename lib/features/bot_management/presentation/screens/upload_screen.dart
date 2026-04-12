@@ -71,7 +71,6 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     _statusTimer?.cancel();
     _statusTimer = null;
   }
-  // ------------------------------------
 
   String get _screenTitle {
     if (widget.uploadType == 'prices') return 'Прайс-лист';
@@ -123,6 +122,9 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     setState(() => _isUploading = true);
     _startStatusTimer();
 
+    // Создаем клиент для установки увеличенного таймаута
+    final client = http.Client();
+
     try {
       final request = http.MultipartRequest(
         'POST',
@@ -145,7 +147,11 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
         ));
       }
 
-      final streamedResponse = await request.send();
+      // Отправляем запрос через клиента с таймаутом 5 минут
+      final streamedResponse = await client.send(request).timeout(
+            const Duration(minutes: 5),
+          );
+
       final response = await http.Response.fromStream(streamedResponse);
 
       _stopStatusTimer();
@@ -164,10 +170,15 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
       } else {
         throw Exception(data['error'] ?? 'Ошибка сервера');
       }
+    } on TimeoutException catch (_) {
+      _stopStatusTimer();
+      _showSnackBar('Превышено время ожидания. Файл обрабатывается на сервере.',
+          isError: true);
     } catch (e) {
       _stopStatusTimer();
       _showSnackBar('Ошибка: $e', isError: true);
     } finally {
+      client.close(); // Обязательно закрываем клиент
       if (mounted) {
         setState(() => _isUploading = false);
       }
@@ -176,7 +187,6 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
 
   Future<void> _payForUpload(int charsNeeded) async {
     try {
-      // Обновляем сессию перед платежом, чтобы JWT был свежим
       await Supabase.instance.client.auth.refreshSession();
 
       final response = await Supabase.instance.client.functions.invoke(
