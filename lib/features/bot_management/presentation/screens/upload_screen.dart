@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
@@ -29,7 +30,49 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
   bool _isUploading = false;
   Map<String, dynamic>? _usageInfo;
 
-  /// Заголовок экрана на основе типа загрузки
+  // --- ЛОГИКА ДИНАМИЧЕСКИХ СТАТУСОВ ---
+  Timer? _statusTimer;
+  int _secondsElapsed = 0;
+  String _currentStatusText = 'Загрузка файла...';
+
+  final List<(int, String)> _uploadStages = [
+    (0, 'Загрузка файла...'),
+    (5, 'Обработка данных...'),
+    (15, 'AI анализирует содержимое...'),
+    (40, 'Оптимизируем поиск...'),
+    (70, 'Почти готово...'),
+  ];
+
+  void _startStatusTimer() {
+    _secondsElapsed = 0;
+    _currentStatusText = _uploadStages[0].$2;
+
+    _statusTimer?.cancel();
+    _statusTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _secondsElapsed++;
+        for (var stage in _uploadStages.reversed) {
+          if (_secondsElapsed >= stage.$1) {
+            if (_currentStatusText != stage.$2) {
+              _currentStatusText = stage.$2;
+            }
+            break;
+          }
+        }
+      });
+    });
+  }
+
+  void _stopStatusTimer() {
+    _statusTimer?.cancel();
+    _statusTimer = null;
+  }
+  // ------------------------------------
+
   String get _screenTitle {
     if (widget.uploadType == 'prices') return 'Прайс-лист';
     return 'База знаний';
@@ -37,13 +80,12 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
 
   @override
   void dispose() {
+    _stopStatusTimer();
     _nameController.dispose();
     super.dispose();
   }
 
-  /// Выбор файла с фильтрацией по типу загрузки (строгие форматы)
   Future<void> _pickFile() async {
-    // ОБНОВЛЕНО: Строгое разграничение форматов
     final allowedExtensions =
         widget.uploadType == 'prices' ? ['xlsx', 'csv'] : ['txt', 'pdf'];
 
@@ -57,7 +99,6 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
       setState(() {
         _pickedFile = result.files.first;
         final fileName = _pickedFile!.name;
-        // Очищаем расширение для дефолтного названия документа
         _nameController.text = fileName.contains('.')
             ? fileName
                 .split('.')
@@ -68,7 +109,6 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     }
   }
 
-  /// Основной метод загрузки на сервер инстанса
   Future<void> _uploadFile() async {
     if (_pickedFile == null || _nameController.text.isEmpty) return;
 
@@ -81,6 +121,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     }
 
     setState(() => _isUploading = true);
+    _startStatusTimer();
 
     try {
       final request = http.MultipartRequest(
@@ -91,7 +132,6 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
       request.fields['type'] = widget.uploadType;
       request.fields['document_name'] = _nameController.text.trim();
 
-      // Кросс-платформенная обработка данных файла
       if (kIsWeb || _pickedFile!.bytes != null) {
         request.files.add(http.MultipartFile.fromBytes(
           'file',
@@ -108,6 +148,8 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
+      _stopStatusTimer();
+
       if (response.body.isEmpty) throw Exception('Пустой ответ от сервера');
       final data = jsonDecode(response.body);
 
@@ -118,21 +160,25 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
         });
         _showSnackBar('Данные успешно загружены!');
       } else if (response.statusCode == 402) {
-        // Лимит превышен — показываем диалог оплаты
         _showLimitDialog(data['usage']);
       } else {
         throw Exception(data['error'] ?? 'Ошибка сервера');
       }
     } catch (e) {
+      _stopStatusTimer();
       _showSnackBar('Ошибка: $e', isError: true);
     } finally {
-      setState(() => _isUploading = false);
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
     }
   }
 
-  /// Вызов Edge Function для создания платежа Stripe
   Future<void> _payForUpload(int charsNeeded) async {
     try {
+      // Обновляем сессию перед платежом, чтобы JWT был свежим
+      await Supabase.instance.client.auth.refreshSession();
+
       final response = await Supabase.instance.client.functions.invoke(
         'create-upload-payment',
         body: {
@@ -155,7 +201,6 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     }
   }
 
-  /// Диалог при превышении лимитов
   void _showLimitDialog(Map<String, dynamic> usage) {
     final int needed = usage['chars_needed'] ?? 0;
     final int cost = usage['estimated_cost'] ?? 1;
@@ -265,7 +310,6 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     );
   }
 
-  /// Плейсхолдер для списка документов
   Widget _buildDocumentsPlaceholder() {
     return Container(
       width: double.infinity,
@@ -287,7 +331,6 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     );
   }
 
-  /// Виджет прогресса использования лимитов
   Widget _buildUsageProgress() {
     final double used = (_usageInfo!['used'] as num).toDouble();
     final double limit = (_usageInfo!['limit'] as num).toDouble();
@@ -340,16 +383,13 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     );
   }
 
-  /// Форма загрузки выбранного файла
   Widget _buildUploadForm() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.accent.withValues(alpha: 0.5),
-        ),
+        border: Border.all(color: AppColors.accent.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -393,19 +433,41 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
-            height: 48,
+            height: _isUploading ? 80 : 48,
             child: ElevatedButton(
               onPressed: _isUploading ? null : _uploadFile,
               style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accent,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12))),
+                backgroundColor: AppColors.accent,
+                disabledBackgroundColor:
+                    AppColors.accent.withValues(alpha: 0.6),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
               child: _isUploading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2))
+                  ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2),
+                        ),
+                        const SizedBox(height: 12),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: Text(
+                            _currentStatusText,
+                            key: ValueKey(_currentStatusText),
+                            style: const TextStyle(
+                              color: Color(0xFFC9B8D8),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
                   : const Text('НАЧАТЬ ЗАГРУЗКУ',
                       style: TextStyle(
                           fontWeight: FontWeight.bold, color: Colors.white)),
@@ -424,7 +486,6 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     );
   }
 
-  /// Универсальная кнопка действия
   Widget _buildActionButton(
       {required String label,
       required IconData icon,

@@ -31,7 +31,7 @@ class _KnowledgeListScreenState extends ConsumerState<KnowledgeListScreen> {
     try {
       final botUrl = widget.business.serviceUrl ?? '';
       if (botUrl.isEmpty) {
-        setState(() => _isLoading = false);
+        if (mounted) setState(() => _isLoading = false);
         return;
       }
 
@@ -83,7 +83,7 @@ class _KnowledgeListScreenState extends ConsumerState<KnowledgeListScreen> {
       ),
     );
 
-    if (confirmed != true) return;
+    if (confirmed != true || !mounted) return;
 
     final botUrl = widget.business.serviceUrl ?? '';
     try {
@@ -93,6 +93,9 @@ class _KnowledgeListScreenState extends ConsumerState<KnowledgeListScreen> {
                 businessId: widget.business.userId,
                 documentName: documentName,
               );
+
+      if (!mounted) return;
+
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -102,6 +105,7 @@ class _KnowledgeListScreenState extends ConsumerState<KnowledgeListScreen> {
         _loadDocuments();
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text('Ошибка удаления: $e'),
