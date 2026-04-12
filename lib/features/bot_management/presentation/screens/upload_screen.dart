@@ -41,11 +41,11 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     super.dispose();
   }
 
-  /// Выбор файла с фильтрацией по типу загрузки
+  /// Выбор файла с фильтрацией по типу загрузки (строгие форматы)
   Future<void> _pickFile() async {
-    final allowedExtensions = widget.uploadType == 'prices'
-        ? ['xlsx', 'csv']
-        : ['xlsx', 'csv', 'txt', 'pdf'];
+    // ОБНОВЛЕНО: Строгое разграничение согласно задаче
+    final allowedExtensions =
+        widget.uploadType == 'prices' ? ['xlsx', 'csv'] : ['txt', 'pdf'];
 
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -200,8 +200,8 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
               Navigator.pop(ctx);
               _payForUpload(needed);
             },
-            child: Text('ОПЛАТИТЬ \$$cost',
-                style: const TextStyle(
+            child: const Text('ОПЛАТИТЬ',
+                style: TextStyle(
                     color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
@@ -249,33 +249,26 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
                     fontWeight: FontWeight.bold,
                     color: AppColors.textPrimary)),
             const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                color: AppColors.card,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: const Column(
-                children: [
-                  Icon(Icons.folder_open_outlined,
-                      size: 48, color: AppColors.textSecondary),
-                  SizedBox(height: 12),
-                  Text('Список документов будет доступен позже',
-                      style: TextStyle(
-                          color: AppColors.textSecondary, fontSize: 13)),
-                ],
-              ),
-            ),
+            _buildDocumentsPlaceholder(),
             const SizedBox(height: 32),
-            if (_pickedFile == null)
+            if (_pickedFile == null) ...[
               _buildActionButton(
                 label: 'ВЫБРАТЬ ФАЙЛ',
                 icon: Icons.attach_file,
                 onPressed: _pickFile,
-              )
-            else
+              ),
+              const SizedBox(height: 12),
+              // ОБНОВЛЕНО: Подсказка форматов под кнопкой
+              Center(
+                child: Text(
+                  widget.uploadType == 'prices'
+                      ? 'Поддерживаемые форматы: XLSX, CSV'
+                      : 'Поддерживаемые форматы: TXT, PDF',
+                  style: const TextStyle(
+                      color: AppColors.textSecondary, fontSize: 12),
+                ),
+              ),
+            ] else
               _buildUploadForm(),
           ],
         ),
@@ -283,6 +276,29 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     );
   }
 
+  /// Плейсхолдер для списка документов
+  Widget _buildDocumentsPlaceholder() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: const Column(
+        children: [
+          Icon(Icons.folder_open_outlined,
+              size: 48, color: AppColors.textSecondary),
+          SizedBox(height: 12),
+          Text('Список документов будет доступен позже',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+        ],
+      ),
+    );
+  }
+
+  /// Виджет прогресса использования лимитов
   Widget _buildUsageProgress() {
     final double used = (_usageInfo!['used'] as num).toDouble();
     final double limit = (_usageInfo!['limit'] as num).toDouble();
@@ -335,6 +351,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     );
   }
 
+  /// Форма загрузки выбранного файла
   Widget _buildUploadForm() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -342,7 +359,6 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
         color: AppColors.card,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          // ИСПРАВЛЕНО: withOpacity -> withValues
           color: AppColors.accent.withValues(alpha: 0.5),
         ),
       ),
@@ -419,6 +435,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     );
   }
 
+  /// Универсальная кнопка действия
   Widget _buildActionButton(
       {required String label,
       required IconData icon,
