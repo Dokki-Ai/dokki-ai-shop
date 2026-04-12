@@ -324,9 +324,8 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
                     _buildMenuButton(
                       icon: Icons.library_books_rounded,
                       label: 'Управление документами',
-                      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Будет доступно позже')),
-                      ),
+                      onTap: () => context.push('/knowledge-list',
+                          extra: widget.business),
                     ),
                     const SizedBox(height: 12),
                     _buildMenuButton(

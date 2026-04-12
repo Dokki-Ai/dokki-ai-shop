@@ -16,6 +16,7 @@ import '../../features/settings/presentation/screens/notifications_screen.dart';
 import '../../features/bot_management/presentation/screens/bot_management_screen.dart';
 import '../../features/bot_management/presentation/screens/bot_config_screen.dart';
 import '../../features/bot_management/presentation/screens/price_list_screen.dart';
+import '../../features/bot_management/presentation/screens/knowledge_list_screen.dart'; // ДОБАВЛЕН ИМПОРТ
 import '../../features/bot_management/presentation/screens/product_edit_screen.dart';
 import '../../features/bot_management/presentation/screens/upload_screen.dart';
 import '../../features/catalog/presentation/screens/bot_detail_screen.dart';
@@ -43,7 +44,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = session != null;
       final location = state.matchedLocation;
 
-      // Защищенные маршруты
+      // Защищенные маршруты (ДОБАВЛЕН /knowledge-list)
       final isProtectedRoute = location.startsWith('/profile') ||
           (location.startsWith('/payment') &&
               !location.startsWith('/payment-success') &&
@@ -51,6 +52,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           location.startsWith('/bot-config') ||
           location.startsWith('/bot-management') ||
           location.startsWith('/price-list') ||
+          location.startsWith('/knowledge-list') ||
           location.startsWith('/upload') ||
           location.startsWith('/product-edit');
 
@@ -154,6 +156,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
+      // ДОБАВЛЕН РОУТ ДЛЯ БАЗЫ ЗНАНИЙ
+      GoRoute(
+        path: '/knowledge-list',
+        builder: (context, state) => KnowledgeListScreen(
+          business: state.extra as Business,
+        ),
+      ),
+
       GoRoute(
         path: '/product-edit',
         builder: (context, state) {
@@ -165,7 +175,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
 
-      // ИСПРАВЛЕНО: Теперь принимает Map с параметрами business и uploadType
       GoRoute(
         path: '/upload',
         builder: (context, state) {
