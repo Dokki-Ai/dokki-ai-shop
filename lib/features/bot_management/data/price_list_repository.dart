@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // Добавлено
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
 // Вот эта строка решает все ошибки "Undefined name" на экране:
@@ -71,6 +71,38 @@ class PriceListRepository {
     }
   }
 
+  /// Получение списка документов (группировка на стороне клиента)
+  Future<List<Map<String, dynamic>>> getDocuments({
+    required String botUrl,
+    required String businessId,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$botUrl/api/prices/$businessId'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final products =
+            List<Map<String, dynamic>>.from(data['products'] ?? []);
+
+        final Map<String, Map<String, dynamic>> docs = {};
+        for (final p in products) {
+          final docName = p['document_name'] ?? 'manual';
+          if (!docs.containsKey(docName)) {
+            docs[docName] = {'document_name': docName, 'count': 0};
+          }
+          docs[docName]!['count'] = (docs[docName]!['count'] as int) + 1;
+        }
+        return docs.values.toList();
+      }
+      throw Exception('Ошибка загрузки документов: ${response.statusCode}');
+    } catch (e) {
+      debugPrint('Get Documents Error: $e');
+      throw Exception('Ошибка загрузки документов: $e');
+    }
+  }
+
   /// Создание/Обновление одной позиции (UPSERT)
   Future<bool> updateProduct({
     required String botUrl,
@@ -112,6 +144,28 @@ class PriceListRepository {
       return response.statusCode == 200;
     } catch (e) {
       debugPrint('Delete Product Error: $e');
+      return false;
+    }
+  }
+
+  /// Удаление всего документа
+  Future<bool> deleteDocument({
+    required String botUrl,
+    required String businessId,
+    required String documentName,
+  }) async {
+    try {
+      final response = await http.delete(
+        Uri.parse(
+            '$botUrl/api/prices/$businessId/doc/${Uri.encodeComponent(documentName)}'),
+      );
+
+      debugPrint(
+          'DELETE DOCUMENT RESPONSE: ${response.statusCode} ${response.body}');
+
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Delete Document Error: $e');
       return false;
     }
   }

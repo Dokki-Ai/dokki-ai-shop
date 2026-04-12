@@ -40,15 +40,16 @@ class _PriceListScreenState extends ConsumerState<PriceListScreen> {
             businessId: widget.business.userId,
           );
 
-      if (mounted) {
-        setState(() {
-          _products = data;
-          _isLoading = false;
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _products = data;
+        _isLoading = false;
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
+
+      // Проверка непосредственно перед использованием context
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -83,6 +84,76 @@ class _PriceListScreenState extends ConsumerState<PriceListScreen> {
           onPressed: () => context.pop(),
         ),
         actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
+            color: AppColors.card,
+            onSelected: (value) async {
+              if (value == 'delete_all') {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    backgroundColor: AppColors.card,
+                    title: const Text('Очистка',
+                        style: TextStyle(color: AppColors.textPrimary)),
+                    content:
+                        const Text('Удалить весь прайс-лист безвозвратно?'),
+                    actions: [
+                      TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('ОТМЕНА',
+                              style:
+                                  TextStyle(color: AppColors.textSecondary))),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text('УДАЛИТЬ ВСЁ',
+                            style: TextStyle(
+                                color: AppColors.error,
+                                fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirmed == true) {
+                  // Проверка после закрытия диалога
+                  if (!mounted) return;
+
+                  final botUrl = widget.business.serviceUrl ?? '';
+                  try {
+                    await ref
+                        .read(priceListRepositoryProvider)
+                        .deleteAllProducts(
+                          botUrl: botUrl,
+                          businessId: widget.business.userId,
+                        );
+
+                    if (!mounted) return;
+                    _loadProducts();
+
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Прайс-лист очищен'),
+                          backgroundColor: AppColors.success),
+                    );
+                  } catch (e) {
+                    if (!mounted || !context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text('Ошибка: $e'),
+                          backgroundColor: AppColors.error),
+                    );
+                  }
+                }
+              }
+            },
+            itemBuilder: (ctx) => [
+              const PopupMenuItem(
+                  value: 'delete_all',
+                  child: Text('Удалить весь прайс',
+                      style: TextStyle(color: AppColors.error))),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: AppColors.textPrimary),
             onPressed: _loadProducts,
@@ -129,6 +200,14 @@ class _PriceListScreenState extends ConsumerState<PriceListScreen> {
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           child: ListTile(
+            onTap: () async {
+              final result = await context.push('/product-edit', extra: {
+                'business': widget.business,
+                'product': product,
+              });
+              if (!mounted) return;
+              if (result == true) _loadProducts();
+            },
             title: Text(product['name'] ?? 'Без названия',
                 style: const TextStyle(
                     color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
@@ -153,15 +232,13 @@ class _PriceListScreenState extends ConsumerState<PriceListScreen> {
                         backgroundColor: AppColors.card,
                         title: const Text('Удаление',
                             style: TextStyle(color: AppColors.textPrimary)),
-                        content: const Text('Удалить этот товар?',
-                            style: TextStyle(color: AppColors.textSecondary)),
+                        content: const Text('Удалить этот товар?'),
                         actions: [
                           TextButton(
-                            onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text('Отмена',
-                                style:
-                                    TextStyle(color: AppColors.textSecondary)),
-                          ),
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('Отмена',
+                                  style: TextStyle(
+                                      color: AppColors.textSecondary))),
                           TextButton(
                             onPressed: () => Navigator.pop(ctx, true),
                             child: const Text('Удалить',
@@ -172,6 +249,7 @@ class _PriceListScreenState extends ConsumerState<PriceListScreen> {
                         ],
                       ),
                     );
+
                     if (confirmed == true) {
                       if (!mounted) return;
                       final botUrl = widget.business.serviceUrl ?? '';
@@ -184,15 +262,15 @@ class _PriceListScreenState extends ConsumerState<PriceListScreen> {
                               businessId: widget.business.userId,
                               sku: sku,
                             );
+
+                        if (!mounted) return;
                         _loadProducts();
                       } catch (e) {
-                        if (!mounted) return;
-                        if (!context.mounted) return;
+                        if (!mounted || !context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Ошибка удаления: $e'),
-                            backgroundColor: AppColors.error,
-                          ),
+                              content: Text('Ошибка удаления: $e'),
+                              backgroundColor: AppColors.error),
                         );
                       }
                     }
@@ -255,14 +333,13 @@ class _PriceListScreenState extends ConsumerState<PriceListScreen> {
                       backgroundColor: AppColors.card,
                       title: const Text('Удаление',
                           style: TextStyle(color: AppColors.textPrimary)),
-                      content: const Text('Удалить этот товар?',
-                          style: TextStyle(color: AppColors.textSecondary)),
+                      content: const Text('Удалить товар?'),
                       actions: [
                         TextButton(
-                          onPressed: () => Navigator.pop(ctx, false),
-                          child: const Text('Отмена',
-                              style: TextStyle(color: AppColors.textSecondary)),
-                        ),
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Отмена',
+                                style:
+                                    TextStyle(color: AppColors.textSecondary))),
                         TextButton(
                           onPressed: () => Navigator.pop(ctx, true),
                           child: const Text('Удалить',
@@ -281,15 +358,15 @@ class _PriceListScreenState extends ConsumerState<PriceListScreen> {
                             businessId: widget.business.userId,
                             sku: (product['sku'] ?? '').toString(),
                           );
+
+                      if (!mounted) return;
                       _loadProducts();
                     } catch (e) {
-                      if (!mounted) return;
-                      if (!context.mounted) return;
+                      if (!mounted || !context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Ошибка удаления: $e'),
-                          backgroundColor: AppColors.error,
-                        ),
+                            content: Text('Ошибка удаления: $e'),
+                            backgroundColor: AppColors.error),
                       );
                     }
                   }
