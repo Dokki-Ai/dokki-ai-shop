@@ -11,8 +11,13 @@ import '../../domain/business.dart';
 
 class UploadScreen extends ConsumerStatefulWidget {
   final Business business;
+  final String uploadType; // 'prices' или 'knowledge'
 
-  const UploadScreen({super.key, required this.business});
+  const UploadScreen({
+    super.key,
+    required this.business,
+    required this.uploadType,
+  });
 
   @override
   ConsumerState<UploadScreen> createState() => _UploadScreenState();
@@ -24,24 +29,10 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
   bool _isUploading = false;
   Map<String, dynamic>? _usageInfo;
 
-  /// Тип загрузки зависит от категории бота
-  String get _uploadType {
-    if (widget.business.botCategory == 'sales') return 'prices';
-    return 'knowledge';
-  }
-
-  /// Заголовок экрана
+  /// Заголовок экрана на основе типа загрузки
   String get _screenTitle {
-    switch (widget.business.botCategory) {
-      case 'sales':
-        return 'Прайс-лист';
-      case 'support':
-        return 'База знаний';
-      case 'admin':
-        return 'Расписание';
-      default:
-        return 'Загрузка данных';
-    }
+    if (widget.uploadType == 'prices') return 'Прайс-лист';
+    return 'База знаний';
   }
 
   @override
@@ -50,9 +41,9 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     super.dispose();
   }
 
-  /// Выбор файла
+  /// Выбор файла с фильтрацией по типу загрузки
   Future<void> _pickFile() async {
-    final allowedExtensions = _uploadType == 'prices'
+    final allowedExtensions = widget.uploadType == 'prices'
         ? ['xlsx', 'csv']
         : ['xlsx', 'csv', 'txt', 'pdf'];
 
@@ -66,6 +57,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
       setState(() {
         _pickedFile = result.files.first;
         final fileName = _pickedFile!.name;
+        // Очищаем расширение для дефолтного названия документа
         _nameController.text = fileName.contains('.')
             ? fileName
                 .split('.')
@@ -81,9 +73,6 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     if (_pickedFile == null || _nameController.text.isEmpty) return;
 
     final botUrl = widget.business.serviceUrl ?? '';
-
-    // ИСПРАВЛЕНО: Используем userId (UUID владельца), так как на Sevalla
-    // данные привязаны именно к BUSINESS_ID = userId из Supabase
     final businessUuid = widget.business.userId;
 
     if (botUrl.isEmpty) {
@@ -99,7 +88,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
         Uri.parse('$botUrl/api/upload/$businessUuid'),
       );
 
-      request.fields['type'] = _uploadType;
+      request.fields['type'] = widget.uploadType;
       request.fields['document_name'] = _nameController.text.trim();
 
       // Кросс-платформенная обработка данных файла
@@ -118,6 +107,8 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.body.isEmpty) throw Exception('Пустой ответ от сервера');
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
@@ -145,7 +136,6 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
       final response = await Supabase.instance.client.functions.invoke(
         'create-upload-payment',
         body: {
-          // ИСПРАВЛЕНО: Также используем userId для синхронизации с Stripe вебхуком
           'businessId': widget.business.userId,
           'charsNeeded': charsNeeded,
         },
@@ -352,6 +342,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
         color: AppColors.card,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
+          // ИСПРАВЛЕНО: withOpacity -> withValues
           color: AppColors.accent.withValues(alpha: 0.5),
         ),
       ),

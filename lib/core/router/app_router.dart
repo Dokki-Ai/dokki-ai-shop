@@ -17,7 +17,7 @@ import '../../features/bot_management/presentation/screens/bot_management_screen
 import '../../features/bot_management/presentation/screens/bot_config_screen.dart';
 import '../../features/bot_management/presentation/screens/price_list_screen.dart';
 import '../../features/bot_management/presentation/screens/product_edit_screen.dart';
-import '../../features/bot_management/presentation/screens/upload_screen.dart'; // 1. ИСПРАВЛЕНО: Добавлен импорт
+import '../../features/bot_management/presentation/screens/upload_screen.dart';
 import '../../features/catalog/presentation/screens/bot_detail_screen.dart';
 
 // Импорты домена
@@ -43,7 +43,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = session != null;
       final location = state.matchedLocation;
 
-      // 3. ИСПРАВЛЕНО: Добавлены /upload и /product-edit в защищенные маршруты
+      // Защищенные маршруты
       final isProtectedRoute = location.startsWith('/profile') ||
           (location.startsWith('/payment') &&
               !location.startsWith('/payment-success') &&
@@ -165,12 +165,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
 
-      // 2. ИСПРАВЛЕНО: Добавлен маршрут /upload
+      // ИСПРАВЛЕНО: Теперь принимает Map с параметрами business и uploadType
       GoRoute(
         path: '/upload',
-        builder: (context, state) => UploadScreen(
-          business: state.extra as Business,
-        ),
+        builder: (context, state) {
+          final data = state.extra as Map<String, dynamic>;
+          return UploadScreen(
+            business: data['business'] as Business,
+            uploadType: data['uploadType'] as String,
+          );
+        },
       ),
     ],
   );
