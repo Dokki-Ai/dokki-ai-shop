@@ -30,47 +30,11 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
   bool _isUploading = false;
   Map<String, dynamic>? _usageInfo;
 
-  // --- ЛОГИКА ДИНАМИЧЕСКИХ СТАТУСОВ ---
-  Timer? _statusTimer;
-  int _secondsElapsed = 0;
-  String _currentStatusText = 'Загрузка файла...';
-
-  final List<(int, String)> _uploadStages = [
-    (0, 'Загрузка файла...'),
-    (5, 'Обработка данных...'),
-    (15, 'AI анализирует содержимое...'),
-    (40, 'Оптимизируем поиск...'),
-    (70, 'Почти готово...'),
-  ];
-
-  void _startStatusTimer() {
-    _secondsElapsed = 0;
-    _currentStatusText = _uploadStages[0].$2;
-
-    _statusTimer?.cancel();
-    _statusTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      setState(() {
-        _secondsElapsed++;
-        for (var stage in _uploadStages.reversed) {
-          if (_secondsElapsed >= stage.$1) {
-            if (_currentStatusText != stage.$2) {
-              _currentStatusText = stage.$2;
-            }
-            break;
-          }
-        }
-      });
-    });
-  }
-
-  void _stopStatusTimer() {
-    _statusTimer?.cancel();
-    _statusTimer = null;
-  }
+  // --- ЛОГИКА АСИНХРОННОГО МАППИНГА ---
+  String? _mappingJobId;
+  Timer? _pollingTimer;
+  int _mappingProgress = 0;
+  String _mappingStatusText = '';
 
   String get _screenTitle {
     if (widget.uploadType == 'prices') return 'Прайс-лист';
@@ -79,7 +43,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
 
   @override
   void dispose() {
-    _stopStatusTimer();
+    _pollingTimer?.cancel();
     _nameController.dispose();
     super.dispose();
   }
@@ -108,6 +72,63 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     }
   }
 
+  void _startMappingPolling(String jobId) {
+    final botUrl = widget.business.serviceUrl ?? '';
+
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+      try {
+        final response = await http.get(
+          Uri.parse('$botUrl/api/upload/status/$jobId'),
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          final status = data['status'] as String;
+          final progress = data['progress'] as int? ?? 0;
+
+          if (mounted) {
+            setState(() {
+              _mappingProgress = progress;
+              if (progress < 30) {
+                _mappingStatusText = 'AI анализирует содержимое... $progress%';
+              } else if (progress < 70) {
+                _mappingStatusText =
+                    'Обогащаем ключевыми словами... $progress%';
+              } else {
+                _mappingStatusText = 'Почти готово... $progress%';
+              }
+            });
+          }
+
+          if (status == 'done') {
+            timer.cancel();
+            if (mounted) {
+              setState(() {
+                _mappingJobId = null;
+                _mappingStatusText = '';
+              });
+              _showSnackBar('Данные загружены и оптимизированы для поиска!');
+            }
+          } else if (status == 'error') {
+            timer.cancel();
+            if (mounted) {
+              setState(() {
+                _mappingJobId = null;
+                _mappingStatusText = '';
+              });
+              _showSnackBar(
+                  'Данные сохранены, но оптимизация поиска не удалась',
+                  isError: true);
+            }
+          }
+        }
+      } catch (_) {
+        // Ошибка поллинга — молча продолжаем, следующая попытка через 3 сек
+      }
+    });
+  }
+
   Future<void> _uploadFile() async {
     if (_pickedFile == null || _nameController.text.isEmpty) return;
 
@@ -120,9 +141,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     }
 
     setState(() => _isUploading = true);
-    _startStatusTimer();
 
-    // Создаем клиент для установки увеличенного таймаута
     final client = http.Client();
 
     try {
@@ -147,14 +166,11 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
         ));
       }
 
-      // Отправляем запрос через клиента с таймаутом 5 минут
       final streamedResponse = await client.send(request).timeout(
             const Duration(minutes: 5),
           );
 
       final response = await http.Response.fromStream(streamedResponse);
-
-      _stopStatusTimer();
 
       if (response.body.isEmpty) throw Exception('Пустой ответ от сервера');
       final data = jsonDecode(response.body);
@@ -164,21 +180,33 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
           _usageInfo = data['usage'];
           _pickedFile = null;
         });
-        _showSnackBar('Данные успешно загружены!');
+
+        final jobId = data['jobId'] as String?;
+        final mappingStatus = data['mappingStatus'] as String?;
+
+        if (jobId != null && mappingStatus == 'processing') {
+          // Данные сохранены, маппинг в фоне — начинаем поллинг
+          setState(() {
+            _mappingJobId = jobId;
+            _mappingProgress = 0;
+            _mappingStatusText = 'AI обогащает данные ключевыми словами...';
+          });
+          _startMappingPolling(jobId);
+        } else {
+          _showSnackBar('Данные успешно загружены!');
+        }
       } else if (response.statusCode == 402) {
         _showLimitDialog(data['usage']);
       } else {
         throw Exception(data['error'] ?? 'Ошибка сервера');
       }
     } on TimeoutException catch (_) {
-      _stopStatusTimer();
       _showSnackBar('Превышено время ожидания. Файл обрабатывается на сервере.',
           isError: true);
     } catch (e) {
-      _stopStatusTimer();
       _showSnackBar('Ошибка: $e', isError: true);
     } finally {
-      client.close(); // Обязательно закрываем клиент
+      client.close();
       if (mounted) {
         setState(() => _isUploading = false);
       }
@@ -297,6 +325,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (_usageInfo != null) _buildUsageProgress(),
+            if (_mappingJobId != null) _buildMappingProgress(),
             const SizedBox(height: 24),
             const Text('Документы в базе',
                 style: TextStyle(
@@ -306,16 +335,59 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
             const SizedBox(height: 12),
             _buildDocumentsPlaceholder(),
             const SizedBox(height: 32),
-            if (_pickedFile == null)
+            if (_pickedFile == null && _mappingJobId == null)
               _buildActionButton(
                 label: 'ВЫБРАТЬ ФАЙЛ',
                 icon: Icons.attach_file,
                 onPressed: _pickFile,
               )
-            else
+            else if (_mappingJobId == null)
               _buildUploadForm(),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildMappingProgress() {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              SizedBox(
+                height: 16,
+                width: 16,
+                child: CircularProgressIndicator(
+                    color: AppColors.accent, strokeWidth: 2),
+              ),
+              SizedBox(width: 12),
+              Text('Оптимизация поиска',
+                  style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          LinearProgressIndicator(
+            value: _mappingProgress / 100,
+            backgroundColor: AppColors.background,
+            color: AppColors.accent,
+            minHeight: 6,
+          ),
+          const SizedBox(height: 8),
+          Text(_mappingStatusText,
+              style: const TextStyle(
+                  color: AppColors.textSecondary, fontSize: 12)),
+        ],
       ),
     );
   }
@@ -443,7 +515,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
-            height: _isUploading ? 80 : 48,
+            height: _isUploading ? 56 : 48,
             child: ElevatedButton(
               onPressed: _isUploading ? null : _uploadFile,
               style: ElevatedButton.styleFrom(
@@ -454,29 +526,11 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
                     borderRadius: BorderRadius.circular(12)),
               ),
               child: _isUploading
-                  ? Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2),
-                        ),
-                        const SizedBox(height: 12),
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
-                          child: Text(
-                            _currentStatusText,
-                            key: ValueKey(_currentStatusText),
-                            style: const TextStyle(
-                              color: Color(0xFFC9B8D8),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                        ),
-                      ],
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2),
                     )
                   : const Text('НАЧАТЬ ЗАГРУЗКУ',
                       style: TextStyle(
