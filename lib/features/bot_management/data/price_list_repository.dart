@@ -18,6 +18,10 @@ class PriceListRepository {
           'products': products,
         }),
       );
+
+      debugPrint(
+          'UPLOAD PRICE LIST RESPONSE: ${response.statusCode} ${response.body}');
+
       return response.statusCode == 200;
     } catch (e) {
       debugPrint('Upload Error: $e');
@@ -37,6 +41,7 @@ class PriceListRepository {
       final response = await http.get(
         Uri.parse('$botUrl/api/prices/$businessId'),
       );
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         List<Map<String, dynamic>> products =
@@ -51,6 +56,9 @@ class PriceListRepository {
               .toList();
         }
         return products.skip(offset).take(limit).toList();
+      } else {
+        debugPrint(
+            'GET PRODUCTS FAILED: ${response.statusCode} ${response.body}');
       }
       return [];
     } catch (e) {
@@ -73,6 +81,10 @@ class PriceListRepository {
           'products': [product],
         }),
       );
+
+      // ВРЕМЕННЫЙ ДЕБАГ: выводим ответ сервера, чтобы понять причину ошибки PostgreSQL
+      debugPrint('PRICE API RESPONSE: ${response.statusCode} ${response.body}');
+
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
       debugPrint('Update Product Error: $e');
@@ -90,6 +102,10 @@ class PriceListRepository {
       final response = await http.delete(
         Uri.parse('$botUrl/api/prices/$businessId/$sku'),
       );
+
+      debugPrint(
+          'DELETE PRODUCT RESPONSE: ${response.statusCode} ${response.body}');
+
       return response.statusCode == 200;
     } catch (e) {
       debugPrint('Delete Product Error: $e');
@@ -106,6 +122,10 @@ class PriceListRepository {
       final response = await http.delete(
         Uri.parse('$botUrl/api/prices/$businessId'),
       );
+
+      debugPrint(
+          'DELETE ALL PRODUCTS RESPONSE: ${response.statusCode} ${response.body}');
+
       return response.statusCode == 200;
     } catch (e) {
       debugPrint('Delete All Products Error: $e');
