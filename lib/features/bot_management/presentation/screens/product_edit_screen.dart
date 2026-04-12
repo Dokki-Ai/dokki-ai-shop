@@ -67,7 +67,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     setState(() => _isSaving = true);
 
     final productData = {
-      // ИСПРАВЛЕНО: используем sku для корректного UPSERT на бэкенде
+      // Используем sku для корректного UPSERT на бэкенде
       if (isEditing) 'sku': widget.product!['sku'],
       'name': _nameController.text.trim(),
       'price': double.tryParse(_priceController.text) ?? 0.0,
@@ -76,10 +76,10 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     };
 
     try {
-      // ИСПРАВЛЕНО: businessId вместо telegramUsername
+      // ИСПРАВЛЕНО: Используем UUID бизнеса (id) вместо botId
       final success = await ref.read(priceListRepositoryProvider).updateProduct(
             botUrl: botUrl,
-            businessId: widget.business.botId,
+            businessId: widget.business.id,
             product: productData,
           );
 
@@ -136,14 +136,14 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
 
     setState(() => _isSaving = true);
 
-    // ИСПРАВЛЕНО: получаем sku вместо id
+    // Получаем sku для идентификации товара в БД инстанса
     final String sku = (widget.product!['sku'] ?? '').toString();
 
     try {
-      // ИСПРАВЛЕНО: businessId вместо telegramUsername, sku вместо productId
+      // ИСПРАВЛЕНО: Используем UUID бизнеса (id) вместо botId
       final success = await ref.read(priceListRepositoryProvider).deleteProduct(
             botUrl: botUrl,
-            businessId: widget.business.botId,
+            businessId: widget.business.id,
             sku: sku,
           );
 

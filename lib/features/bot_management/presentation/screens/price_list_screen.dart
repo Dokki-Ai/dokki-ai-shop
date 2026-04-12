@@ -43,10 +43,10 @@ class _PriceListScreenState extends ConsumerState<PriceListScreen> {
         return;
       }
 
-      // ИСПРАВЛЕНО: businessId вместо telegramUsername
+      // ИСПРАВЛЕНО: Используем UUID бизнеса (id) вместо botId для корректного поиска в БД
       final data = await ref.read(priceListRepositoryProvider).getProducts(
             botUrl: botUrl,
-            businessId: widget.business.botId,
+            businessId: widget.business.id,
           );
 
       if (mounted) {
@@ -215,7 +215,6 @@ class _PriceDataSource extends DataTableSource {
     if (index >= products.length) return null;
     final product = products[index];
 
-    // ИСПРАВЛЕНО: получаем SKU из данных товара
     final String sku = (product['sku'] ?? '').toString();
     final botUrl = business.serviceUrl ?? '';
 
@@ -247,10 +246,10 @@ class _PriceDataSource extends DataTableSource {
               onPressed: () async {
                 final confirmed = await _showDeleteDialog();
                 if (confirmed) {
-                  // ИСПРАВЛЕНО: businessId вместо telegramUsername, sku вместо productId
+                  // ИСПРАВЛЕНО: Используем business.id (UUID) для удаления записи в БД инстанса
                   await ref.read(priceListRepositoryProvider).deleteProduct(
                         botUrl: botUrl,
-                        businessId: business.botId,
+                        businessId: business.id,
                         sku: sku,
                       );
                   onRefresh();
