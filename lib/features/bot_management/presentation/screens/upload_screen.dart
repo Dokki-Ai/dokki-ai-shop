@@ -43,7 +43,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
 
   /// Выбор файла с фильтрацией по типу загрузки (строгие форматы)
   Future<void> _pickFile() async {
-    // Строгое разграничение форматов: прайсы — таблицы, знания — текст/pdf
+    // ОБНОВЛЕНО: Строгое разграничение форматов
     final allowedExtensions =
         widget.uploadType == 'prices' ? ['xlsx', 'csv'] : ['txt', 'pdf'];
 
@@ -200,8 +200,8 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
               Navigator.pop(ctx);
               _payForUpload(needed);
             },
-            child: const Text('ОПЛАТИТЬ',
-                style: TextStyle(
+            child: Text('ОПЛАТИТЬ \$$cost',
+                style: const TextStyle(
                     color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
