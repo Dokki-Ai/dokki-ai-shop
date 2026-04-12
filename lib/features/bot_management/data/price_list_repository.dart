@@ -1,6 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // Добавлено
 import 'package:http/http.dart' as http;
+
+// Вот эта строка решает все ошибки "Undefined name" на экране:
+final priceListRepositoryProvider = Provider((ref) => PriceListRepository());
 
 class PriceListRepository {
   /// Массовая загрузка/перезапись (PUT)
@@ -82,7 +86,6 @@ class PriceListRepository {
         }),
       );
 
-      // ВРЕМЕННЫЙ ДЕБАГ: выводим ответ сервера, чтобы понять причину ошибки PostgreSQL
       debugPrint('PRICE API RESPONSE: ${response.statusCode} ${response.body}');
 
       return response.statusCode == 200 || response.statusCode == 201;

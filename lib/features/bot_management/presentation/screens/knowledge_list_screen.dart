@@ -114,6 +114,88 @@ class _KnowledgeListScreenState extends ConsumerState<KnowledgeListScreen> {
     }
   }
 
+  Future<void> _showDocumentContent(String documentName) async {
+    final botUrl = widget.business.serviceUrl ?? '';
+    if (botUrl.isEmpty) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        maxChildSize: 0.9,
+        minChildSize: 0.3,
+        expand: false,
+        builder: (_, scrollController) =>
+            FutureBuilder<List<Map<String, dynamic>>>(
+          future: ref.read(knowledgeRepositoryProvider).getChunks(
+                botUrl: botUrl,
+                businessId: widget.business.userId,
+                documentName: documentName,
+              ),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                  child: CircularProgressIndicator(color: AppColors.accent));
+            }
+            if (snapshot.hasError) {
+              return Center(
+                  child: Text('Ошибка: ${snapshot.error}',
+                      style: const TextStyle(color: AppColors.error)));
+            }
+            final chunks = snapshot.data ?? [];
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(documentName,
+                            style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16)),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close,
+                            color: AppColors.textSecondary),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(color: AppColors.border, height: 1),
+                Expanded(
+                  child: ListView.separated(
+                    controller: scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: chunks.length,
+                    separatorBuilder: (_, __) =>
+                        const Divider(color: AppColors.border),
+                    itemBuilder: (_, i) {
+                      final content = chunks[i]['content'] ?? '';
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(content,
+                            style: const TextStyle(
+                                color: AppColors.textSecondary, fontSize: 14)),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -189,40 +271,43 @@ class _KnowledgeListScreenState extends ConsumerState<KnowledgeListScreen> {
       } catch (_) {}
     }
 
-    return Card(
-      color: AppColors.card,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            const Icon(Icons.description_outlined,
-                color: AppColors.accent, size: 32),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name,
-                      style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15)),
-                  const SizedBox(height: 4),
-                  Text(
-                      '$chunks фрагм. • $chars симв.${dateStr.isNotEmpty ? ' • $dateStr' : ''}',
-                      style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 12)),
-                ],
+    return GestureDetector(
+      onTap: () => _showDocumentContent(name),
+      child: Card(
+        color: AppColors.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.only(bottom: 12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              const Icon(Icons.description_outlined,
+                  color: AppColors.accent, size: 32),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name,
+                        style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15)),
+                    const SizedBox(height: 4),
+                    Text(
+                        '$chunks фрагм. • $chars симв.${dateStr.isNotEmpty ? ' • $dateStr' : ''}',
+                        style: const TextStyle(
+                            color: AppColors.textSecondary, fontSize: 12)),
+                  ],
+                ),
               ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline_rounded,
-                  color: AppColors.error),
-              onPressed: () => _deleteDocument(name),
-            ),
-          ],
+              IconButton(
+                icon: const Icon(Icons.delete_outline_rounded,
+                    color: AppColors.error),
+                onPressed: () => _deleteDocument(name),
+              ),
+            ],
+          ),
         ),
       ),
     );
