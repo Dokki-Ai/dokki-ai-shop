@@ -67,7 +67,6 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     setState(() => _isSaving = true);
 
     final productData = {
-      // Используем sku для корректного UPSERT на бэкенде
       if (isEditing) 'sku': widget.product!['sku'],
       'name': _nameController.text.trim(),
       'price': double.tryParse(_priceController.text) ?? 0.0,
@@ -76,12 +75,16 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     };
 
     try {
-      // ИСПРАВЛЕНО: Используем UUID бизнеса (id) вместо botId
+      // ИСПРАВЛЕНО: Используем userId (UUID владельца), так как на Sevalla
+      // данные привязаны именно к BUSINESS_ID = userId из Supabase
       final success = await ref.read(priceListRepositoryProvider).updateProduct(
             botUrl: botUrl,
-            businessId: widget.business.id,
+            businessId: widget.business.userId,
             product: productData,
           );
+
+      // ВРЕМЕННЫЙ ДЕБАГ:
+      debugPrint('UPDATE RESULT: $success');
 
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -136,14 +139,13 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
 
     setState(() => _isSaving = true);
 
-    // Получаем sku для идентификации товара в БД инстанса
     final String sku = (widget.product!['sku'] ?? '').toString();
 
     try {
-      // ИСПРАВЛЕНО: Используем UUID бизнеса (id) вместо botId
+      // ИСПРАВЛЕНО: Используем userId для удаления записи в БД инстанса
       final success = await ref.read(priceListRepositoryProvider).deleteProduct(
             botUrl: botUrl,
-            businessId: widget.business.id,
+            businessId: widget.business.userId,
             sku: sku,
           );
 

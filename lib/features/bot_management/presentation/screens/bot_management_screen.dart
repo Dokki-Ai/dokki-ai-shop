@@ -292,10 +292,12 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
 
     setState(() => _isSaving = true);
     try {
+      // ИСПРАВЛЕНО: Используем userId (UUID владельца), так как на Sevalla
+      // именно он является ключом business_id в таблице bots
       final bool success =
           await ref.read(botPromptRepositoryProvider).updateSystemPrompt(
                 botUrl: botUrl,
-                businessId: widget.business.botId,
+                businessId: widget.business.userId,
                 systemPrompt: _promptController.text.trim(),
               );
 

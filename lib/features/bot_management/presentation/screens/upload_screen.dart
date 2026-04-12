@@ -81,8 +81,10 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     if (_pickedFile == null || _nameController.text.isEmpty) return;
 
     final botUrl = widget.business.serviceUrl ?? '';
-    // ИСПРАВЛЕНО: Используем UUID (.id), а не слаг (.botId)
-    final businessUuid = widget.business.id;
+
+    // ИСПРАВЛЕНО: Используем userId (UUID владельца), так как на Sevalla
+    // данные привязаны именно к BUSINESS_ID = userId из Supabase
+    final businessUuid = widget.business.userId;
 
     if (botUrl.isEmpty) {
       _showSnackBar('Ошибка: URL инстанса не найден', isError: true);
@@ -143,7 +145,8 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
       final response = await Supabase.instance.client.functions.invoke(
         'create-upload-payment',
         body: {
-          'businessId': widget.business.id, // Передаем UUID
+          // ИСПРАВЛЕНО: Также используем userId для синхронизации с Stripe вебхуком
+          'businessId': widget.business.userId,
           'charsNeeded': charsNeeded,
         },
       );
@@ -346,9 +349,8 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.card, // Оставляем основной цвет фона здесь
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(12),
-        // Цвет акцента используем только для рамки (border)
         border: Border.all(
           color: AppColors.accent.withValues(alpha: 0.5),
         ),

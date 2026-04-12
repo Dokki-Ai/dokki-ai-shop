@@ -43,10 +43,11 @@ class _PriceListScreenState extends ConsumerState<PriceListScreen> {
         return;
       }
 
-      // ИСПРАВЛЕНО: Используем UUID бизнеса (id) вместо botId для корректного поиска в БД
+      // ИСПРАВЛЕНО: Используем userId (UUID владельца), который совпадает с
+      // BUSINESS_ID на Sevalla, для получения корректного списка товаров
       final data = await ref.read(priceListRepositoryProvider).getProducts(
             botUrl: botUrl,
-            businessId: widget.business.id,
+            businessId: widget.business.userId,
           );
 
       if (mounted) {
@@ -246,10 +247,10 @@ class _PriceDataSource extends DataTableSource {
               onPressed: () async {
                 final confirmed = await _showDeleteDialog();
                 if (confirmed) {
-                  // ИСПРАВЛЕНО: Используем business.id (UUID) для удаления записи в БД инстанса
+                  // ИСПРАВЛЕНО: Используем userId для удаления записи в БД инстанса
                   await ref.read(priceListRepositoryProvider).deleteProduct(
                         botUrl: botUrl,
-                        businessId: business.id,
+                        businessId: business.userId,
                         sku: sku,
                       );
                   onRefresh();
